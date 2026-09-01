@@ -16,13 +16,13 @@ import {
   Flame, 
   Calendar, 
   Layers, 
-  Sparkles,
-  ArrowRight,
-  DollarSign,
-  Landmark,
-  HelpCircle,
-  BookOpen,
-  Info
+  Sparkles, 
+  ArrowRight, 
+  DollarSign, 
+  Landmark, 
+  HelpCircle, 
+  BookOpen, 
+  Info 
 } from 'lucide-react';
 
 interface TickerAnalysisModalProps {
@@ -62,6 +62,10 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
     }
   };
 
+  const isCredit = report.recommendedStrategy.netDebit < 0;
+  const premiumPerShare = Math.abs(report.recommendedStrategy.netDebit);
+  const totalContractCost = Math.round(premiumPerShare * 100);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-surface-300 border border-cyan-500/40 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-y-auto shadow-2xl shadow-cyan-950/50 flex flex-col">
@@ -84,7 +88,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 </span>
               </div>
               <div className="flex items-center space-x-3 text-xs font-mono text-slate-400 mt-1">
-                <span>Spot: <strong className="text-white">${report.spotPrice.toFixed(2)}</strong></span>
+                <span>Stock Spot Price: <strong className="text-white">${report.spotPrice.toFixed(2)}</strong></span>
                 <span>•</span>
                 <span>Support: <strong className="text-slate-200">${report.supportResistance.support}</strong></span>
                 <span>•</span>
@@ -205,12 +209,12 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
             </div>
           </div>
 
-          {/* Actionable Recommended Derivative Structure Card */}
+          {/* Actionable Recommended Derivative Structure Card (Distinct Stock vs Option Price) */}
           <div className="bg-surface-200/90 border border-cyan-500/40 rounded-xl p-5 shadow-lg">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
               <div>
                 <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider">
-                  OPTIMAL DERIVATIVES EXECUTION STRUCTURE
+                  RECOMMENDED OPTIONS TRADE STRUCTURE
                 </span>
                 <h3 className="text-base font-bold font-mono text-white mt-0.5">
                   {report.recommendedStrategy.name}
@@ -236,26 +240,35 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
               </div>
             </div>
 
-            {/* Greeks & Risk Parameters */}
+            {/* Price Disambiguation Grid: Stock Price vs Option Premium */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-xs font-mono">
-              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">ENTRY COST (DEBIT)</div>
-                <div className="font-bold text-white mt-0.5">
-                  ${Math.abs(report.recommendedStrategy.netDebit).toFixed(2)}
+              <div className="bg-black/50 p-2.5 rounded-lg border border-cyan-500/30">
+                <div className="text-cyan-400 text-[10px] font-bold">OPTION PREMIUM</div>
+                <div className="font-extrabold text-sm text-white mt-0.5">
+                  ${premiumPerShare.toFixed(2)} <span className="text-[10px] text-slate-400 font-normal">/ share</span>
+                </div>
+                <div className="text-[10px] text-slate-300 mt-0.5">
+                  ${totalContractCost} / 100-sh contract
                 </div>
               </div>
 
               <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">MAX PROFIT / LOSS</div>
-                <div className="font-bold text-terminal-green mt-0.5">
-                  ${report.recommendedStrategy.maxProfit} / -${report.recommendedStrategy.maxLoss}
+                <div className="text-slate-500 text-[10px]">MAX RISK (100% CAPPED)</div>
+                <div className="font-bold text-terminal-red mt-0.5">
+                  -${report.recommendedStrategy.maxLoss}
+                </div>
+                <div className="text-[10px] text-terminal-green mt-0.5">
+                  Max Gain: ${report.recommendedStrategy.maxProfit}
                 </div>
               </div>
 
               <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">BREAK-EVEN</div>
+                <div className="text-slate-500 text-[10px]">BREAK-EVEN SPOT</div>
                 <div className="font-bold text-amber-300 mt-0.5">
                   {report.recommendedStrategy.breakEvenPoints.map(b => `$${b}`).join(', ')}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  Stock Price Needed
                 </div>
               </div>
 
@@ -264,12 +277,18 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 <div className="font-bold text-cyan-300 mt-0.5">
                   {report.recommendedStrategy.probabilityOfProfit}% PoP
                 </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  Delta: +{report.recommendedStrategy.combinedGreeks.delta}
+                </div>
               </div>
 
               <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">POSITION DELTA (Δ)</div>
-                <div className="font-bold text-terminal-green mt-0.5">
-                  +{report.recommendedStrategy.combinedGreeks.delta}
+                <div className="text-slate-500 text-[10px]">UNDERLYING SPOT</div>
+                <div className="font-bold text-white mt-0.5">
+                  ${report.spotPrice.toFixed(2)}
+                </div>
+                <div className="text-[10px] text-terminal-green mt-0.5">
+                  Target: ${report.supportResistance.breakoutTarget}
                 </div>
               </div>
             </div>
