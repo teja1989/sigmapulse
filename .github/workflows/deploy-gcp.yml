@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+  # Run the verify job on PRs too. Without this the gate only ever runs AFTER a merge
+  # has already landed on main — it could never actually block a bad merge.
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 env:
@@ -45,6 +50,8 @@ jobs:
   deploy:
     name: Build & Deploy to Google Cloud Run
     needs: verify
+    # Never deploy from a pull request — only from a push to main (or manual dispatch).
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
