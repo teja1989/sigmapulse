@@ -409,7 +409,7 @@ export const OptionsPayoffModal: React.FC<OptionsPayoffModalProps> = ({
         {/* Modal Footer */}
         <div className="p-4 border-t border-white/10 bg-surface-200/80 flex items-center justify-between">
           <div className="text-xs font-mono text-slate-400">
-            Probability of Profit: <strong className="text-terminal-green">{strategy.probabilityOfProfit}%</strong> • Max Risk: <strong className="text-terminal-red">${strategy.maxLoss}</strong>
+            Probability of Profit: <strong className="text-terminal-green">{strategy.probabilityOfProfit === null ? 'n/a' : `${strategy.probabilityOfProfit}%`}</strong> • Max Risk: <strong className="text-terminal-red">${strategy.maxLoss}</strong>
           </div>
           <button
             onClick={onClose}

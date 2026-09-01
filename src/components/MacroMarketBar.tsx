@@ -1,5 +1,6 @@
 'use client';
 
+import { ProvenanceBadge } from './ProvenanceBadge';
 import React, { useEffect, useState } from 'react';
 
 interface IndexQuote {
@@ -10,6 +11,12 @@ interface IndexQuote {
   changePercent: number;
 }
 
+/**
+ * Static placeholder values. NOT live — nothing in this component fetches. They were
+ * previously rendered beside a pulsing "LIVE" dot and a real ticking clock, which made a
+ * frozen snapshot read as a live tape. The exchange-status badge below IS real (computed
+ * from the clock); these prices are not, and are labelled as such.
+ */
 const DEFAULT_BENCHMARKS: IndexQuote[] = [
   { symbol: 'SPY', name: 'S&P 500', price: 593.15, change: 2.45, changePercent: 0.41 },
   { symbol: 'QQQ', name: 'NASDAQ 100', price: 514.80, change: 4.10, changePercent: 0.80 },
@@ -21,7 +28,7 @@ const DEFAULT_BENCHMARKS: IndexQuote[] = [
 
 export const MacroMarketBar: React.FC = () => {
   const [marketStatus, setMarketStatus] = useState<{ status: string; color: string; badge: string }>({
-    status: 'MARKET LIVE',
+    status: 'MARKET OPEN',
     color: 'bg-emerald-500',
     badge: 'text-emerald-400 bg-emerald-950/60 border-emerald-800/60',
   });
@@ -62,7 +69,7 @@ export const MacroMarketBar: React.FC = () => {
         });
       } else if (timeInMinutes >= 9 * 60 + 30 && timeInMinutes < 16 * 60) {
         setMarketStatus({
-          status: 'NYSE / NASDAQ LIVE',
+          status: 'NYSE / NASDAQ OPEN',
           color: 'bg-emerald-500',
           badge: 'text-emerald-400 bg-emerald-950/80 border-emerald-600/60',
         });
@@ -103,8 +110,9 @@ export const MacroMarketBar: React.FC = () => {
         <span className="text-slate-400 hidden sm:inline">{estTime}</span>
       </div>
 
-      {/* Benchmark Indices Tape */}
+      {/* Benchmark Indices Tape — static placeholders, explicitly labelled */}
       <div className="flex items-center gap-4 overflow-x-auto py-1 scrollbar-none">
+        <ProvenanceBadge provenance="SAMPLE" className="shrink-0" />
         {DEFAULT_BENCHMARKS.map((idx) => {
           const isPos = idx.change >= 0;
           return (

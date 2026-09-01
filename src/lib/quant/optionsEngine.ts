@@ -1,4 +1,10 @@
-import { calculateBlackScholes, OptionGreeks } from './blackScholes';
+import {
+  calculateBlackScholes,
+  probabilityAboveAtExpiry,
+  probabilityBetweenAtExpiry,
+  toPercent,
+  OptionGreeks,
+} from './blackScholes';
 
 export type StrategyType = 
   | 'LONG_CALL'
@@ -42,7 +48,8 @@ export interface OptionsStrategyStructure {
   maxLoss: number | 'UNLIMITED';
   riskRewardRatio: string;
   breakEvenPoints: number[];
-  probabilityOfProfit: number; // 0 - 100%
+  /** 0-100. `null` when it cannot be computed from the inputs (never a placeholder). */
+  probabilityOfProfit: number | null;
   targetTakeProfitPrice: number;
   recommendedStopLossPrice: number;
   combinedGreeks: OptionGreeks;
@@ -178,8 +185,9 @@ export function buildLongCallStrategy(
   const combinedGreeks = aggregateGreeks([leg]);
   const payoffCurve = generatePayoffCurve(spot, [leg], netDebit);
 
-  // PoP estimation via Delta
-  const pop = Math.min(95, Math.max(10, Math.round((1 - pricing.greeks.delta) * 100)));
+  // PoP = risk-neutral P(S_T > break-even) at expiry.
+  // NOT (1 - delta), which is the probability the call expires worthless.
+  const pop = toPercent(probabilityAboveAtExpiry(spot, breakEven, T, 0.045, iv));
 
   return {
     id: `strat-${ticker}-lc-${Date.now()}`,
@@ -269,7 +277,7 @@ export function buildBullCallSpread(
     maxLoss,
     riskRewardRatio: `1 : ${rrRatio}`,
     breakEvenPoints: [breakEven],
-    probabilityOfProfit: 68,
+    probabilityOfProfit: toPercent(probabilityAboveAtExpiry(spot, breakEven, T, 0.045, iv)),
     targetTakeProfitPrice: Number((netDebit + (spreadWidth - netDebit) * 0.65).toFixed(2)),
     recommendedStopLossPrice: Number((netDebit * 0.5).toFixed(2)),
     combinedGreeks: aggregateGreeks(legs),
@@ -332,7 +340,7 @@ export function buildIronCondor(
     maxLoss,
     riskRewardRatio: `1 : ${(maxLoss / maxProfit).toFixed(2)} (Credit)`,
     breakEvenPoints: [lowerBE, upperBE],
-    probabilityOfProfit: 74,
+    probabilityOfProfit: toPercent(probabilityBetweenAtExpiry(spot, lowerBE, upperBE, T, 0.045, iv)),
     targetTakeProfitPrice: Number((netCredit * 0.5).toFixed(2)), // Close at 50% max profit
     recommendedStopLossPrice: Number((netCredit * 2.0).toFixed(2)), // Stop at 2x credit received
     combinedGreeks: aggregateGreeks(legs),
@@ -383,7 +391,10 @@ export function buildLongStraddle(
     maxLoss,
     riskRewardRatio: 'Asymmetric Bi-Directional',
     breakEvenPoints: [lowerBE, upperBE],
-    probabilityOfProfit: 54,
+    probabilityOfProfit: toPercent(
+      (1 - probabilityAboveAtExpiry(spot, lowerBE, T, 0.045, iv)) +
+      probabilityAboveAtExpiry(spot, upperBE, T, 0.045, iv)
+    ),
     targetTakeProfitPrice: Number((totalCost * 1.75).toFixed(2)),
     recommendedStopLossPrice: Number((totalCost * 0.6).toFixed(2)),
     combinedGreeks: aggregateGreeks(legs),

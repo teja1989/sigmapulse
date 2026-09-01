@@ -14,9 +14,37 @@ env:
   REPOSITORY: sigmapulse
   IMAGE_NAME: sigmapulse-terminal
 
+# Two rapid pushes must not race each other to production.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
 jobs:
+  verify:
+    name: Typecheck & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
   deploy:
     name: Build & Deploy to Google Cloud Run
+    needs: verify
     runs-on: ubuntu-latest
     permissions:
       contents: read

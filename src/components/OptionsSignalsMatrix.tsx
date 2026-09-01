@@ -37,7 +37,7 @@ export const OptionsSignalsMatrix: React.FC<OptionsSignalsMatrixProps> = ({
     if (filterBias === 'ALL') return true;
     if (filterBias === 'BULLISH') return sig.bias === 'BULLISH';
     if (filterBias === 'VOLATILITY') return sig.bias === 'VOLATILITY_EXPANSION' || sig.bias === 'VOLATILITY_CRUSH';
-    if (filterBias === 'HIGH_POP') return sig.probabilityOfProfit >= 70;
+    if (filterBias === 'HIGH_POP') return (sig.probabilityOfProfit ?? -1) >= 70;
     return true;
   });
 
@@ -133,7 +133,7 @@ export const OptionsSignalsMatrix: React.FC<OptionsSignalsMatrixProps> = ({
                       <span>{signal.convictionScore}% SCORE</span>
                     </div>
                     <span className="text-[10px] font-mono text-slate-400 mt-0.5">
-                      PoP: {signal.probabilityOfProfit}%
+                      PoP: {signal.probabilityOfProfit === null ? 'n/a' : `${signal.probabilityOfProfit}%`}
                     </span>
                   </div>
                 </div>

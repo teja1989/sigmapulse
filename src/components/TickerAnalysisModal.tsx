@@ -79,19 +79,19 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
   // Interactive P&L Payoff Simulator Calculation
   const spot = report.spotPrice;
   const simulatedSpot = spot * (1 + priceSimPct / 100);
-  const strike = report.recommendedStrategy.legs[0]?.strike || spot;
-  const isCall = report.recommendedStrategy.legs[0]?.type?.toLowerCase() === 'call';
 
-  let simulatedOptionValue = 0;
-  if (isCall) {
-    simulatedOptionValue = Math.max(0, simulatedSpot - strike);
-  } else {
-    simulatedOptionValue = Math.max(0, strike - simulatedSpot);
-  }
+  // Read the P&L off the engine's own multi-leg payoff curve rather than recomputing
+  // intrinsic value on legs[0]. The old path ignored time value AND ignored the short
+  // leg of a spread, so it reported unbounded upside on a capped structure.
+  const curve = report.recommendedStrategy.payoffCurve;
+  const nearest = curve.length
+    ? curve.reduce((best, pt) =>
+        Math.abs(pt.price - simulatedSpot) < Math.abs(best.price - simulatedSpot) ? pt : best,
+      curve[0])
+    : null;
 
-  const simulatedProfitPerShare = simulatedOptionValue - premiumPerShare;
-  const simulatedTotalProfit = Math.round(simulatedProfitPerShare * 100);
-  const simulatedRoiPct = totalContractCost > 0 
+  const simulatedTotalProfit = nearest ? Math.round(nearest.pnlAtExpiry) : 0;
+  const simulatedRoiPct = totalContractCost > 0
     ? Math.round((simulatedTotalProfit / totalContractCost) * 100)
     : 0;
 
@@ -113,7 +113,7 @@ MARKET PRICING & STRUCTURE:
 - Recommended Strategy: ${report.recommendedStrategy.name}
 - Option Premium: $${premiumPerShare.toFixed(2)}/sh ($${totalContractCost} per 100-sh contract)
 - Break-Even Spot: ${report.recommendedStrategy.breakEvenPoints.map(b => `$${b}`).join(', ')}
-- Win Probability: ${report.recommendedStrategy.probabilityOfProfit}% PoP
+- Probability of Profit (model, at expiry): ${report.recommendedStrategy.probabilityOfProfit === null ? 'n/a' : `${report.recommendedStrategy.probabilityOfProfit}%`}
 - Max Risk: $${report.recommendedStrategy.maxLoss} (100% Capped)
 
 5-PILLAR BREAKDOWN:
@@ -357,7 +357,7 @@ Generated via SigmaPulse Quant Terminal
               <div className="bg-surface-300 p-2.5 rounded-lg border border-white/5">
                 <div className="text-slate-400 text-[10px]">WIN PROBABILITY</div>
                 <div className="font-bold text-sky-300 mt-0.5">
-                  {report.recommendedStrategy.probabilityOfProfit}% PoP
+                  {report.recommendedStrategy.probabilityOfProfit === null ? 'n/a' : `${report.recommendedStrategy.probabilityOfProfit}% PoP`}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-0.5">
                   Delta: +{report.recommendedStrategy.combinedGreeks.delta}

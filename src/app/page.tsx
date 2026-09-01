@@ -11,6 +11,7 @@ import { CatalystCategory } from '@/lib/quant/backtester';
 import { analyzeTickerSignals, QuantitativeSignalReport } from '@/lib/quant/rulesEngine';
 import { fetchLiveStockQuote } from '@/lib/data/liveQuoteService';
 
+import { ProvenanceBadge } from '@/components/ProvenanceBadge';
 import { Header } from '@/components/Header';
 import { TickerRibbon } from '@/components/TickerRibbon';
 import { TickerSearchBar } from '@/components/TickerSearchBar';
@@ -93,7 +94,11 @@ export default function SigmaPulseTerminal() {
     let list = activeSectorId === 'all' ? [...allStocks] : (activeSector ? [...activeSector.stocks] : []);
 
     if (sortBy === 'score') {
-      list.sort((a, b) => analyzeTickerSignals(b).compositeScore - analyzeTickerSignals(a).compositeScore);
+      // Score each ticker ONCE, then sort the cached values. Calling analyzeTickerSignals
+      // inside the comparator ran the full backtest + Black-Scholes payoff curve O(n log n)
+      // times, twice per comparison, on every 2.4s price tick.
+      const scoreByTicker = new Map(list.map((s) => [s.ticker, analyzeTickerSignals(s).compositeScore]));
+      list.sort((a, b) => (scoreByTicker.get(b.ticker) ?? 0) - (scoreByTicker.get(a.ticker) ?? 0));
     } else if (sortBy === 'change') {
       list.sort((a, b) => b.changePercent - a.changePercent);
     } else if (sortBy === 'iv') {
@@ -271,8 +276,11 @@ export default function SigmaPulseTerminal() {
                 <div className="flex items-center space-x-2">
                   <Flame className="w-4 h-4 text-sky-400" />
                   <h3 className="text-sm font-bold font-mono uppercase tracking-wider text-slate-200">
-                    High-Beta Sector Assets & Greeks Matrix
+                    High-Beta Sector Assets &amp; Greeks Matrix
                   </h3>
+                  {/* These rows come from the bundled sector table and a simulated tick,
+                      not from a market feed. Only the ticker search hits live data. */}
+                  <ProvenanceBadge provenance="SAMPLE" />
                 </div>
 
                 <div className="flex items-center space-x-3 text-xs font-mono">

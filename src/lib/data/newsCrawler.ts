@@ -19,12 +19,22 @@ export interface NewsItem {
   historicalWinRate: number; // e.g. 84%
 }
 
+/**
+ * ILLUSTRATIVE SAMPLE CONTENT — NOT MARKET DATA.
+ *
+ * These headlines are written for layout and demo purposes. They were previously
+ * attributed to real news organisations and to real SEC filing types, which made
+ * fabricated copy indistinguishable from reporting. Every `source` is now explicitly
+ * marked as sample, and the UI renders these items behind a SAMPLE banner.
+ *
+ * Replace wholesale when a real feed (EDGAR full-text, openFDA, a licensed wire) lands.
+ */
 export const INITIAL_NEWS_FEED: NewsItem[] = [
   {
     id: 'news-1',
     title: 'NVIDIA Receives Export Clearance for Next-Gen Blackwell Architecture to Sovereign Cloud Alliances',
     summary: 'The U.S. Bureau of Industry and Security (BIS) has issued an updated export compliance framework allowing accelerated deployment of Blackwell B200 accelerators across certified tier-1 sovereign data centers in EMEA and APAC.',
-    source: 'Bloomberg Terminal',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'FINANCIAL_WIRE',
     timestamp: '2026-08-31T22:45:00Z',
     timeAgo: '10m ago',
@@ -42,7 +52,7 @@ export const INITIAL_NEWS_FEED: NewsItem[] = [
     id: 'news-2',
     title: 'IonQ Announces Breakthrough in Multi-Core Quantum Optical Interconnects; 64-Qubit Scalability Confirmed',
     summary: 'IonQ research team successfully demonstrates photonic ion-trap interconnects linking multiple quantum processing units (QPUs) with sub-microsecond optical entangling fidelity, paving the way for commercial fault-tolerant cluster deployment.',
-    source: 'Quantum Computing Report & PR Newswire',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'TECH_PRESS',
     timestamp: '2026-08-31T22:30:00Z',
     timeAgo: '25m ago',
@@ -60,7 +70,7 @@ export const INITIAL_NEWS_FEED: NewsItem[] = [
     id: 'news-3',
     title: 'FDA Advisory Committee Votes 14-1 in Favor of Expanded Approval for Eli Lilly Retatrutide',
     summary: 'The FDA Endocrinologic and Metabolic Drugs Advisory Committee unanimously endorsed the safety and cardiovascular clinical endpoints for triple-agonist Retatrutide, setting up expedited final agency clearance ahead of schedule.',
-    source: 'FDA.gov Regulatory Wire',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'FDA_GOV',
     timestamp: '2026-08-31T22:15:00Z',
     timeAgo: '40m ago',
@@ -78,7 +88,7 @@ export const INITIAL_NEWS_FEED: NewsItem[] = [
     id: 'news-4',
     title: 'House Financial Disclosures Reveal Major Congressional Calls Accumulation in Palantir Technologies',
     summary: 'Periodic Transaction Reports (PTR) filed under the STOCK Act show prominent members of the House Armed Services Committee acquired over $2.5M in out-of-the-money Palantir LEAPS calls ahead of upcoming CJADC2 defense budget allocation votes.',
-    source: 'Capitol Trades / SEC EDGAR',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'CONGRESS_DISCLOSURE',
     timestamp: '2026-08-31T21:50:00Z',
     timeAgo: '1h ago',
@@ -96,7 +106,7 @@ export const INITIAL_NEWS_FEED: NewsItem[] = [
     id: 'news-5',
     title: 'Pentagon Finalizes $1.4B Multi-Domain Autonomous Command & Control Architecture Award',
     summary: 'The Department of Defense announced the formal contract award for Project Overmatch multi-domain integration, naming Palantir Technologies and Lockheed Martin as key prime contractors for edge AI software and hardened sensor links.',
-    source: 'Defense.gov Press Operations',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'DEFENSE_DOD',
     timestamp: '2026-08-31T21:10:00Z',
     timeAgo: '1.5h ago',
@@ -114,7 +124,7 @@ export const INITIAL_NEWS_FEED: NewsItem[] = [
     id: 'news-6',
     title: 'Rigetti Computing Deploys 84-Qubit Quantum Processor to National Labs under NQCO Directive',
     summary: 'Rigetti Computing has completed on-premises installation of its modular 84-qubit system at Oak Ridge National Laboratory under the National Quantum Initiative Act, accelerating hybrid HPC-quantum simulation pipelines.',
-    source: 'Department of Energy Science Wire',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'TECH_PRESS',
     timestamp: '2026-08-31T20:30:00Z',
     timeAgo: '2h ago',
@@ -132,7 +142,7 @@ export const INITIAL_NEWS_FEED: NewsItem[] = [
     id: 'news-7',
     title: 'Vertex Pharmaceuticals Reports Positive Phase 3 Pain Readout with Zero Opioid-Class Adverse Events',
     summary: 'Vertex Suzetrigine (VX-548) achieved all primary efficacy endpoints in moderate-to-severe acute pain with statistically significant pain score reductions versus placebo and active reference arms.',
-    source: 'BioSpace Clinical Trials Daily',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'FDA_GOV',
     timestamp: '2026-08-31T19:40:00Z',
     timeAgo: '3h ago',
@@ -152,7 +162,7 @@ export const BREAKING_NEWS_TEMPLATES: Partial<NewsItem>[] = [
   {
     title: 'Federal Reserve Notes Stable Disinflation with Resilient Real GDP in Beige Book Summary',
     summary: 'Macro policy indicators point toward continued easing with low terminal risk, driving positive beta expansion across speculative tech and small-cap high-growth assets.',
-    source: 'Federal Reserve Board',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'FINANCIAL_WIRE',
     sectorId: 'tech-ai',
     relatedTickers: ['QQQ', 'MSFT', 'NVDA'],
@@ -167,7 +177,7 @@ export const BREAKING_NEWS_TEMPLATES: Partial<NewsItem>[] = [
   {
     title: 'CRISPR Therapeutics Receives Expedited Review Designation for In Vivo Gene Disruption Candidate',
     summary: 'FDA grants Fast Track status to CTX310 targeting ANGPTL3 for dyslipidemia and severe cardiovascular disease cohorts.',
-    source: 'SEC 8-K Filing',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'SEC_FILING',
     sectorId: 'biotech-medical',
     relatedTickers: ['CRSP', 'LLY'],
@@ -182,7 +192,7 @@ export const BREAKING_NEWS_TEMPLATES: Partial<NewsItem>[] = [
   {
     title: 'D-Wave Quantum Announces Multi-Year Commercial Optimization Contract with Tier-1 Logistics Giant',
     summary: 'Enterprise deployment of Advantage quantum annealing system achieves 28% reduction in cross-border logistics routing latency compared to classic supercomputers.',
-    source: 'Reuters Financial',
+    source: 'SAMPLE FEED (not a real source)',
     sourceType: 'FINANCIAL_WIRE',
     sectorId: 'quantum',
     relatedTickers: ['QBTS', 'IONQ'],

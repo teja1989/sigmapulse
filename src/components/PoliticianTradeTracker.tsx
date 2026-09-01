@@ -1,5 +1,6 @@
 'use client';
 
+import { SampleDataBanner } from './ProvenanceBadge';
 import React from 'react';
 import { POLITICIAN_TRADES, PoliticianTradeEntry } from '@/lib/data/politicianTracker';
 import { 
@@ -26,6 +27,14 @@ export const PoliticianTradeTracker: React.FC<PoliticianTradeTrackerProps> = ({
 }) => {
   return (
     <div className="bg-surface-200/60 border border-white/10 rounded-2xl p-5 shadow-xl">
+      <div className="mb-4">
+        <SampleDataBanner>
+          <strong>Sample disclosures, not real STOCK Act filings.</strong> Names, amounts,
+          filing dates and conflict scores below are placeholders for layout. No real
+          individual is described. Actual House and Senate disclosures are public and free —
+          this panel becomes meaningful only once that ingest is connected.
+        </SampleDataBanner>
+      </div>
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-white/10">
         <div className="flex items-center space-x-2.5">

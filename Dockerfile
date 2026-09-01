@@ -4,7 +4,8 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci || npm install
+# `npm ci || npm install` silently proceeded on lockfile drift, defeating the lockfile.
+RUN npm ci
 
 # Stage 2: Build application
 FROM node:20-alpine AS builder

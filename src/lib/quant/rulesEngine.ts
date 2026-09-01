@@ -164,6 +164,72 @@ export function getOrCreateStockProfile(tickerInput: string): StockAsset {
   };
 }
 
+
+/** Clamp to the 0-100 score domain. */
+function clamp100(x: number): number {
+  if (!isFinite(x)) return 0;
+  return Math.min(100, Math.max(0, Math.round(x)));
+}
+
+/**
+ * Trend score from position within the support/resistance channel.
+ * Peaks in the upper-middle of the channel (a trend with room left) and falls off at
+ * BOTH ends: below support is a broken structure, pinned at resistance is an extended
+ * entry. Previously returned one of three constants, none below 68.
+ */
+export function scoreTrend(spot: number, support: number, resistance: number): number {
+  if (!isFinite(spot) || !isFinite(support) || !isFinite(resistance) || resistance <= support) return 0;
+  const pos = (spot - support) / (resistance - support);
+  return clamp100(100 - 120 * Math.abs(pos - 0.7));
+}
+
+/**
+ * Momentum from 14-period RSI. Peaks near 58 (advancing, not yet extended) and decays
+ * symmetrically into both overbought and oversold. Previously floored at 70.
+ */
+export function scoreMomentum(rsi14: number): number {
+  if (!isFinite(rsi14)) return 0;
+  return clamp100(100 - 2.2 * Math.abs(rsi14 - 58));
+}
+
+/**
+ * Volatility-edge score. Deliberately U-shaped: an edge exists when options are clearly
+ * cheap OR clearly rich. A mid-range IV Rank means there is no volatility trade here and
+ * must score LOW — previously this floored at 82.
+ */
+export function scoreVolatilityEdge(ivRank: number): number {
+  if (!isFinite(ivRank)) return 0;
+  return clamp100(40 + 60 * (Math.abs(ivRank - 50) / 50));
+}
+
+/**
+ * Catalyst score with small-sample shrinkage toward a 50% base rate (Beta(2,2) prior).
+ * A 2-for-2 record scores 67, not 100. Note the underlying precedent set is still
+ * survivorship-selected; shrinkage limits the damage but does not repair it.
+ */
+export function scoreCatalyst(winRatePercent: number, sampleSize: number): number {
+  if (!isFinite(winRatePercent) || !isFinite(sampleSize) || sampleSize <= 0) return 50;
+  const wins = (winRatePercent / 100) * sampleSize;
+  return clamp100(((wins + 2) / (sampleSize + 4)) * 100);
+}
+
+/**
+ * Risk/reward score from the structure's own expected value per dollar at risk.
+ * Previously hardcoded to EXCELLENT for every position.
+ */
+export function scoreRiskReward(
+  pop: number | null,
+  maxProfit: number | 'UNLIMITED',
+  maxLoss: number | 'UNLIMITED'
+): number {
+  if (pop === null || maxLoss === 'UNLIMITED' || typeof maxLoss !== 'number' || maxLoss <= 0) return 0;
+  const p = pop / 100;
+  const profit = maxProfit === 'UNLIMITED' ? maxLoss * 3 : maxProfit;
+  if (typeof profit !== 'number' || !isFinite(profit)) return 0;
+  const ev = p * profit - (1 - p) * maxLoss;
+  return clamp100(50 + (ev / maxLoss) * 50);
+}
+
 /**
  * Evaluates the 5-Pillar Decision Framework and institutional quantitative rules
  * Accepts either ticker symbol string or a resolved StockAsset with live market prices.
@@ -179,7 +245,7 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
   // 1. Evaluate Trend
   const isNearResistance = spot >= stock.resistanceLevel * 0.98;
   const isNearSupport = spot <= stock.supportLevel * 1.02;
-  const trendScore = isNearResistance ? 92 : isNearSupport ? 68 : 84;
+  const trendScore = scoreTrend(spot, stock.supportLevel, stock.resistanceLevel);
   rules.push({
     id: 'rule-trend-1',
     category: 'TREND',
@@ -195,7 +261,7 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
 
   // 2. Evaluate Momentum (RSI)
   const rsi = stock.rsi14;
-  const momentumScore = rsi >= 60 && rsi < 75 ? 90 : rsi >= 75 ? 70 : 80;
+  const momentumScore = scoreMomentum(rsi);
   rules.push({
     id: 'rule-momentum-1',
     category: 'MOMENTUM',
@@ -209,7 +275,7 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
 
   // 3. Evaluate Volatility (IVR)
   const ivr = stock.ivRank;
-  const volScore = ivr >= 70 ? 88 : ivr <= 35 ? 92 : 82;
+  const volScore = scoreVolatilityEdge(ivr);
   rules.push({
     id: 'rule-vol-1',
     category: 'VOLATILITY',
@@ -230,7 +296,7 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
   else if (stock.sectorId === 'politician-macro') catType = 'CONGRESSIONAL_INSIDER_BUY';
 
   const backtest = runEventBacktest(catType);
-  const catalystScore = Math.round(backtest.winRate5D);
+  const catalystScore = scoreCatalyst(backtest.winRate5D, backtest.sampleSize);
   rules.push({
     id: 'rule-catalyst-1',
     category: 'INSIDER_CATALYST',
@@ -243,7 +309,14 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
   });
 
   // 5. Evaluate Insider & Political Flow
-  const insiderScore = politicianTrade ? 96 : stock.analystConsensus === 'STRONG_BUY' ? 86 : 78;
+  // No disclosed insider flow is NEUTRAL evidence (50), not a 78-point endorsement.
+  const insiderScore = politicianTrade
+    ? clamp100(60 + politicianTrade.conflictScore * 0.4)
+    : stock.analystConsensus === 'STRONG_BUY'
+      ? 62
+      : stock.analystConsensus === 'BUY'
+        ? 55
+        : 50;
   if (politicianTrade) {
     rules.push({
       id: 'rule-insider-1',
@@ -269,13 +342,11 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
   }
 
   // Calculate Composite Score (Weighted average of the 5 pillars)
-  const compositeScore = Math.min(99, Math.max(55, Math.round(
-    trendScore * 0.22 +
-    momentumScore * 0.18 +
-    volScore * 0.20 +
-    catalystScore * 0.22 +
-    insiderScore * 0.18
-  )));
+  // No floor, no ceiling clamp: a weak setup must be able to score weakly, or the score
+  // carries no information. Risk/reward folds in after the structure is built.
+  const preStrategyScore = clamp100(
+    trendScore * 0.26 + momentumScore * 0.21 + volScore * 0.24 + catalystScore * 0.29
+  );
 
   // Build 5 Decision Pillars with Layman Plain-English Interpretations
   const trendPillar: DecisionPillar = {
@@ -283,7 +354,7 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
     name: 'Price Trend & Momentum',
     shortLabel: 'Trend Power',
     score: trendScore,
-    status: trendScore >= 85 ? 'EXCELLENT' : trendScore >= 75 ? 'STRONG' : 'NEUTRAL',
+    status: trendScore >= 85 ? 'EXCELLENT' : trendScore >= 70 ? 'STRONG' : trendScore >= 45 ? 'NEUTRAL' : 'CAUTION',
     laymanMeaning: 'Is the stock moving up with real buyer strength?',
     plainEnglishSummary: isNearResistance
       ? 'Strong upward surge — buyers are aggressively pushing the stock toward new highs.'
@@ -298,7 +369,7 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
     name: 'Volatility & Pricing Value',
     shortLabel: 'Option Value',
     score: volScore,
-    status: volScore >= 85 ? 'EXCELLENT' : 'STRONG',
+    status: volScore >= 85 ? 'EXCELLENT' : volScore >= 70 ? 'STRONG' : volScore >= 50 ? 'NEUTRAL' : 'CAUTION',
     laymanMeaning: 'Are options cheap to buy, or rich enough to sell for daily income?',
     plainEnglishSummary: ivr >= 70
       ? 'Options are expensive — our strategy sells higher strikes so you collect time decay while minimizing cost.'
@@ -313,11 +384,11 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
     name: 'Smart Money & Congressional Flow',
     shortLabel: 'Insider Flow',
     score: insiderScore,
-    status: politicianTrade ? 'EXCELLENT' : 'STRONG',
+    status: insiderScore >= 85 ? 'EXCELLENT' : insiderScore >= 70 ? 'STRONG' : insiderScore >= 52 ? 'NEUTRAL' : 'CAUTION',
     laymanMeaning: 'Are politicians, corporate insiders, and big institutions buying?',
     plainEnglishSummary: politicianTrade
       ? `High-confidence signal — ${politicianTrade.politician} filed a large position ahead of key legislation.`
-      : 'Solid institutional backing — major Wall Street analysts have a Buy rating with upside targets.',
+      : `No disclosed congressional or insider flow in $${symbol}. Analyst consensus is ${stock.analystConsensus}, which is not by itself evidence of accumulation.`,
     color: '#FFB000',
     iconName: 'Landmark',
     metricsSummary: politicianTrade ? `STOCK Act: ${politicianTrade.politician}` : `Consensus: ${stock.analystConsensus}`,
@@ -328,54 +399,86 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
     name: 'Catalyst & Event Power',
     shortLabel: 'Event Impact',
     score: catalystScore,
-    status: catalystScore >= 80 ? 'EXCELLENT' : 'STRONG',
+    status: catalystScore >= 80 ? 'EXCELLENT' : catalystScore >= 65 ? 'STRONG' : catalystScore >= 50 ? 'NEUTRAL' : 'CAUTION',
     laymanMeaning: 'What news event is coming, and how reliably has the stock jumped in the past?',
-    plainEnglishSummary: `The upcoming event on ${stock.catalystDate} has an ${backtest.winRate5D}% historical win rate with an average gain of +${backtest.medianReturn5D}%.`,
+    plainEnglishSummary: `${backtest.sampleSize} historical precedent${backtest.sampleSize === 1 ? '' : 's'} for this catalyst type, ${backtest.winRate5D}% positive over 5 days (median +${backtest.medianReturn5D}%). Adjusted for the small sample, the estimated base rate is ${catalystScore}%.`,
     color: '#00FF66',
     iconName: 'Sparkles',
-    metricsSummary: `${stock.upcomingCatalyst.slice(0, 40)}... (${backtest.winRate5D}% WR)`,
+    metricsSummary: `${stock.upcomingCatalyst.slice(0, 40)}... (n=${backtest.sampleSize}, adj. ${catalystScore}%)`,
   };
+
+  // Strategy construction. Built BEFORE the composite so risk/reward is scored from the
+  // structure's real economics rather than echoing the composite back at itself.
+  const ivDecimal = stock.impliedVol / 100;
+  let verdict: QuantitativeSignalReport['verdict'];
+  let verdictTitle: string;
+  let verdictDescription: string;
+  let laymanOneLiner: string;
+  let recommendedStrategy: OptionsStrategyStructure;
+
+  const channelPos = stock.resistanceLevel > stock.supportLevel
+    ? (spot - stock.supportLevel) / (stock.resistanceLevel - stock.supportLevel)
+    : 0.5;
+  const structureBroken = channelPos < 0.15;
+  const noEdge = preStrategyScore < 45;
+
+  if (structureBroken && rsi < 45) {
+    // Previously unreachable. The bearish branch now actually fires.
+    verdict = 'BEAR_HEDGE_PUT';
+    verdictTitle = 'BEARISH — HEDGE OR STAND ASIDE';
+    verdictDescription = `Price has broken below the $${stock.supportLevel} support shelf and momentum confirms it (RSI ${rsi}). Long exposure here is against the trend.`;
+    laymanOneLiner = 'The stock has broken its floor and momentum is still falling. This is not a buy — hedge existing exposure or stay out.';
+    recommendedStrategy = buildLongStraddle(symbol, spot, 30, ivDecimal, stock.upcomingCatalyst, preStrategyScore);
+  } else if (noEdge) {
+    // Previously unreachable. Most names, most days, are not setups.
+    verdict = 'WAIT_RANGEBOUND';
+    verdictTitle = 'NO EDGE — STAND ASIDE';
+    verdictDescription = `Composite ${preStrategyScore}/100. Trend, momentum, volatility and catalyst evidence do not combine into an actionable asymmetry at this price.`;
+    laymanOneLiner = 'Nothing here is worth your capital right now. The setup does not pay you enough for the risk — wait for a better entry.';
+    recommendedStrategy = buildBullCallSpread(symbol, spot, 45, ivDecimal, 0.06, stock.upcomingCatalyst, preStrategyScore);
+  } else if (ivr >= 75) {
+    verdict = 'VOLATILITY_HARVEST';
+    verdictTitle = 'VOLATILITY HARVEST (IRON CONDOR)';
+    verdictDescription = 'Elevated implied volatility. Harvest premium via a defined-risk Iron Condor while price stays inside the corridor.';
+    recommendedStrategy = buildIronCondor(symbol, spot, 35, ivDecimal, 0.07, stock.upcomingCatalyst, preStrategyScore);
+    laymanOneLiner = `Option premiums are rich here. This corridor collects about $${Math.abs(recommendedStrategy.combinedGreeks.theta * 100).toFixed(2)}/day in time decay while the stock stays between $${recommendedStrategy.breakEvenPoints[0]} and $${recommendedStrategy.breakEvenPoints[1]}.`;
+  } else if (ivr <= 40 && (rsi >= 55 || politicianTrade)) {
+    verdict = 'STRONG_BUY_ALPHA';
+    verdictTitle = 'DIRECTIONAL LONG CALL (CONVEX UPSIDE)';
+    verdictDescription = 'Low implied volatility with momentum confirmation. Convex payoff via out-of-the-money long calls.';
+    recommendedStrategy = buildLongCallStrategy(symbol, spot, 45, ivDecimal, 0.05, stock.upcomingCatalyst, preStrategyScore);
+    laymanOneLiner = `Options are cheap and momentum is with you. Modelled odds of finishing profitable: ${recommendedStrategy.probabilityOfProfit === null ? 'n/a' : recommendedStrategy.probabilityOfProfit + '%'} — a low-probability, high-payoff position, so size it as one.`;
+  } else {
+    verdict = 'BULL_CALL_SPREAD';
+    verdictTitle = 'BULL CALL VERTICAL (DEFINED RISK)';
+    verdictDescription = 'Vertical debit spread. Selling the upper strike cuts cost basis and dampens volatility crush, in exchange for a capped payoff.';
+    recommendedStrategy = buildBullCallSpread(symbol, spot, 45, ivDecimal, 0.06, stock.upcomingCatalyst, preStrategyScore);
+    laymanOneLiner = `Balanced structure: risk capped at $${recommendedStrategy.maxLoss}, upside $${recommendedStrategy.maxProfit}, break-even $${recommendedStrategy.breakEvenPoints[0]}. Modelled odds of profit: ${recommendedStrategy.probabilityOfProfit === null ? 'n/a' : recommendedStrategy.probabilityOfProfit + '%'}.`;
+  }
+
+  // Pillar 5 scores the actual structure's expected value per dollar at risk.
+  const riskRewardScore = scoreRiskReward(
+    recommendedStrategy.probabilityOfProfit,
+    recommendedStrategy.maxProfit,
+    recommendedStrategy.maxLoss
+  );
+
+  const compositeScore = clamp100(preStrategyScore * 0.82 + riskRewardScore * 0.18);
 
   const riskRewardPillar: DecisionPillar = {
     id: 'pillar-5',
-    name: 'Downside Safety & Protection',
-    shortLabel: 'Risk Protection',
-    score: Math.min(95, Math.max(65, Math.round(compositeScore * 0.95))),
-    status: 'EXCELLENT',
-    laymanMeaning: 'Is your money protected if the market suddenly drops?',
-    plainEnglishSummary: 'Strictly defined risk — your maximum loss is capped in advance, and you cannot lose more than your initial net debit.',
+    name: 'Risk / Reward Efficiency',
+    shortLabel: 'Risk/Reward',
+    score: riskRewardScore,
+    status: riskRewardScore >= 75 ? 'EXCELLENT' : riskRewardScore >= 60 ? 'STRONG' : riskRewardScore >= 45 ? 'NEUTRAL' : 'CAUTION',
+    laymanMeaning: 'Does this trade pay you enough for the risk you are taking?',
+    plainEnglishSummary: recommendedStrategy.maxLoss === 'UNLIMITED'
+      ? 'This structure has undefined downside. Size it accordingly.'
+      : `Maximum loss is $${recommendedStrategy.maxLoss} per contract, known before you enter. Modelled probability of profit is ${recommendedStrategy.probabilityOfProfit === null ? 'not computable from these inputs' : recommendedStrategy.probabilityOfProfit + '%'}.`,
     color: '#3B82F6',
     iconName: 'ShieldCheck',
-    metricsSummary: 'Capped Risk • Stop-Loss Protected • High PoP',
+    metricsSummary: `Max loss $${recommendedStrategy.maxLoss} • R:R ${recommendedStrategy.riskRewardRatio} • PoP ${recommendedStrategy.probabilityOfProfit ?? 'n/a'}%`,
   };
-
-  // Strategy construction
-  const ivDecimal = stock.impliedVol / 100;
-  let verdict: QuantitativeSignalReport['verdict'] = 'BULL_CALL_SPREAD';
-  let verdictTitle = 'BULL CALL VERTICAL (DEFINED RISK ALPHA)';
-  let verdictDescription = '';
-  let laymanOneLiner = '';
-  let recommendedStrategy: OptionsStrategyStructure;
-
-  if (ivr >= 75) {
-    verdict = 'VOLATILITY_HARVEST';
-    verdictTitle = 'VOLATILITY HARVEST / THETA CRUSH (IRON CONDOR)';
-    verdictDescription = 'High Implied Volatility regime. Harvest premium and theta decay via defined-risk Iron Condor containment.';
-    laymanOneLiner = `Options premiums are at peak pricing — we set up a protective corridor that pays you daily cash ($18.50/day) as time passes.`;
-    recommendedStrategy = buildIronCondor(symbol, spot, 35, ivDecimal, 0.07, stock.upcomingCatalyst, compositeScore);
-  } else if (ivr <= 40 && (rsi >= 55 || politicianTrade)) {
-    verdict = 'STRONG_BUY_ALPHA';
-    verdictTitle = 'STRONG BUY ALPHA (OUTRIGHT MOMENTUM CALL)';
-    verdictDescription = 'Low IV with strong momentum and structural catalyst tailwind. Maximize upside convex payoff with Out-of-the-Money Long Calls.';
-    laymanOneLiner = `Low option prices + strong momentum + Congressional buying gives you massive upside leverage for a modest entry cost.`;
-    recommendedStrategy = buildLongCallStrategy(symbol, spot, 45, ivDecimal, 0.05, stock.upcomingCatalyst, compositeScore);
-  } else {
-    verdict = 'BULL_CALL_SPREAD';
-    verdictTitle = 'BULL CALL VERTICAL (HIGH-PROBABILITY SPREAD)';
-    verdictDescription = 'Optimal risk-to-reward vertical debit spread. Reduces cost basis and mitigates volatility crush by selling the upper strike.';
-    laymanOneLiner = `Best balanced play: You buy upside growth while selling a higher strike to cut your risk by ~40% and boost your win probability.`;
-    recommendedStrategy = buildBullCallSpread(symbol, spot, 45, ivDecimal, 0.06, stock.upcomingCatalyst, compositeScore);
-  }
 
   return {
     ticker: symbol,
@@ -387,7 +490,7 @@ export function analyzeTickerSignals(tickerOrStock: string | StockAsset): Quanti
     verdictDescription,
     laymanOneLiner,
     compositeScore,
-    confidenceLevel: compositeScore >= 88 ? 'VERY_HIGH' : compositeScore >= 75 ? 'HIGH' : 'MODERATE',
+    confidenceLevel: compositeScore >= 88 ? 'VERY_HIGH' : compositeScore >= 75 ? 'HIGH' : compositeScore >= 55 ? 'MODERATE' : 'SPECULATIVE',
     fivePillars: {
       trendPillar,
       volatilityPillar,

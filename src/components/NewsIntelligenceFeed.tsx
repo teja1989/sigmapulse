@@ -1,5 +1,6 @@
 'use client';
 
+import { SampleDataBanner } from './ProvenanceBadge';
 import React, { useState } from 'react';
 import { NewsItem } from '@/lib/data/newsCrawler';
 import { CatalystCategory } from '@/lib/quant/backtester';
@@ -65,6 +66,14 @@ export const NewsIntelligenceFeed: React.FC<NewsIntelligenceFeedProps> = ({
 
   return (
     <div className="bg-surface-200/60 border border-white/10 rounded-2xl p-5 shadow-xl flex flex-col h-full">
+      <div className="mb-4">
+        <SampleDataBanner>
+          <strong>Sample headlines, not a live newswire.</strong> These items are illustrative
+          content shipped with the app for layout purposes. They are not reporting, are not
+          sourced from any news organisation or regulatory filing, and must not be traded on.
+          A real feed (SEC EDGAR full-text, openFDA, a licensed wire) is not yet connected.
+        </SampleDataBanner>
+      </div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-white/10">
         <div className="flex items-center space-x-2.5">
@@ -77,11 +86,11 @@ export const NewsIntelligenceFeed: React.FC<NewsIntelligenceFeedProps> = ({
                 Real-Time Catalyst & News Crawler
               </h2>
               <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-mono px-2 py-0.5 rounded font-semibold border border-emerald-500/30">
-                NLP SCORING ACTIVE
+                SAMPLE
               </span>
             </div>
             <p className="text-xs text-slate-400 font-sans">
-              Autonomous scraping of SEC disclosures, FDA regulatory filings, and financial wires.
+              Sample catalyst feed. Live SEC / FDA / wire ingest is not yet connected.
             </p>
           </div>
         </div>

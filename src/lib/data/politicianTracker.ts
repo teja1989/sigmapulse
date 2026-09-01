@@ -22,10 +22,22 @@ export interface PoliticianTradeEntry {
   recommendedOptionFollow: string;
 }
 
+/**
+ * ILLUSTRATIVE SAMPLE CONTENT — NOT REAL DISCLOSURES.
+ *
+ * These records previously named real, identifiable public figures alongside invented
+ * transaction amounts, invented filing dates and an invented "conflict score". Fabricated
+ * financial allegations against named individuals are not acceptable in a shipped product,
+ * so the names are now non-identifying placeholders.
+ *
+ * Real STOCK Act data is free and public (House/Senate disclosure portals; the
+ * house-stock-watcher / senate-stock-watcher datasets normalise it to JSON). This array
+ * should be replaced by that ingest, not re-populated with real names by hand.
+ */
 export const POLITICIAN_TRADES: PoliticianTradeEntry[] = [
   {
     id: 'pol-trade-1',
-    politician: 'Nancy Pelosi (Spouse)',
+    politician: 'Representative A — spouse filing',
     party: 'DEMOCRAT',
     chamber: 'HOUSE',
     state: 'CA',
@@ -48,7 +60,7 @@ export const POLITICIAN_TRADES: PoliticianTradeEntry[] = [
   },
   {
     id: 'pol-trade-2',
-    politician: 'Tommy Tuberville',
+    politician: 'Senator B',
     party: 'REPUBLICAN',
     chamber: 'SENATE',
     state: 'AL',
@@ -71,7 +83,7 @@ export const POLITICIAN_TRADES: PoliticianTradeEntry[] = [
   },
   {
     id: 'pol-trade-3',
-    politician: 'Michael McCaul',
+    politician: 'Representative C',
     party: 'REPUBLICAN',
     chamber: 'HOUSE',
     state: 'TX',
@@ -94,7 +106,7 @@ export const POLITICIAN_TRADES: PoliticianTradeEntry[] = [
   },
   {
     id: 'pol-trade-4',
-    politician: 'Ro Khanna',
+    politician: 'Representative D',
     party: 'DEMOCRAT',
     chamber: 'HOUSE',
     state: 'CA',
@@ -117,7 +129,7 @@ export const POLITICIAN_TRADES: PoliticianTradeEntry[] = [
   },
   {
     id: 'pol-trade-5',
-    politician: 'Dan Crenshaw',
+    politician: 'Representative E',
     party: 'REPUBLICAN',
     chamber: 'HOUSE',
     state: 'TX',

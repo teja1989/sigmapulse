@@ -212,3 +212,53 @@ export function calculateIVRank(currentIV: number, iv52wLow: number, iv52wHigh: 
   const ivr = ((currentIV - iv52wLow) / (iv52wHigh - iv52wLow)) * 100;
   return Math.min(100, Math.max(0, Number(ivr.toFixed(1))));
 }
+
+/**
+ * Risk-neutral probability that the underlying finishes ABOVE `target` at expiry.
+ *
+ * P(S_T > X) = N(d2) evaluated with X as the strike, under GBM.
+ *
+ * This is the correct primitive for probability-of-profit: evaluate it at the
+ * strategy's BREAK-EVEN, not at the strike. Delta approximates P(finish ITM),
+ * which is neither P(profit) nor its complement — using (1 - delta) reports the
+ * probability the position expires worthless.
+ */
+export function probabilityAboveAtExpiry(
+  spot: number,
+  target: number,
+  T: number,
+  r: number = 0.045,
+  sigma: number = 0.30,
+  q: number = 0.0
+): number {
+  if (!isFinite(spot) || !isFinite(target) || spot <= 0 || sigma <= 0) return NaN;
+  if (target <= 0) return 1;
+  if (T <= 0) return spot > target ? 1 : 0;
+  const d2 = (Math.log(spot / target) + (r - q - 0.5 * sigma * sigma) * T) / (sigma * Math.sqrt(T));
+  return cdfNormal(d2);
+}
+
+/**
+ * Risk-neutral probability that the underlying finishes strictly between two bounds.
+ * Used for range-bound credit structures (iron condor).
+ */
+export function probabilityBetweenAtExpiry(
+  spot: number,
+  lower: number,
+  upper: number,
+  T: number,
+  r: number = 0.045,
+  sigma: number = 0.30,
+  q: number = 0.0
+): number {
+  const pAboveLower = probabilityAboveAtExpiry(spot, lower, T, r, sigma, q);
+  const pAboveUpper = probabilityAboveAtExpiry(spot, upper, T, r, sigma, q);
+  if (!isFinite(pAboveLower) || !isFinite(pAboveUpper)) return NaN;
+  return Math.max(0, pAboveLower - pAboveUpper);
+}
+
+/** Convert a probability in [0,1] to a rounded percentage, or null when undefined. */
+export function toPercent(p: number): number | null {
+  if (!isFinite(p)) return null;
+  return Math.round(Math.min(1, Math.max(0, p)) * 100);
+}
