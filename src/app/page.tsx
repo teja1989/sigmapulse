@@ -22,6 +22,7 @@ import { OptionsPayoffModal } from '@/components/OptionsPayoffModal';
 import { BacktestWorkbenchModal } from '@/components/BacktestWorkbenchModal';
 import { StockDetailModal } from '@/components/StockDetailModal';
 import { TickerAnalysisModal } from '@/components/TickerAnalysisModal';
+import { InteractiveFieldGuideModal } from '@/components/InteractiveFieldGuideModal';
 
 import { 
   Zap, 
@@ -34,7 +35,8 @@ import {
   ArrowUpRight,
   Info,
   Radio,
-  Sparkles
+  Sparkles,
+  BookOpen
 } from 'lucide-react';
 
 export default function SigmaPulseTerminal() {
@@ -54,6 +56,7 @@ export default function SigmaPulseTerminal() {
   const [backtestInitialCategory, setBacktestInitialCategory] = useState<CatalystCategory>('FDA_APPROVAL');
   const [detailModalStock, setDetailModalStock] = useState<StockAsset | null>(null);
   const [analysisReport, setAnalysisReport] = useState<QuantitativeSignalReport | null>(null);
+  const [isFieldGuideOpen, setIsFieldGuideOpen] = useState<boolean>(false);
 
   // Audio chime
   const playAlertChime = () => {
@@ -151,14 +154,13 @@ export default function SigmaPulseTerminal() {
     playAlertChime();
   };
 
-  // Search handler: Runs institutional quantitative rules & generates signals report
+  // Search handler: Runs institutional quantitative rules & generates 5-pillar signals report
   const handleSearchTicker = (ticker: string) => {
     const report = analyzeTickerSignals(ticker);
     setAnalysisReport(report);
   };
 
   const handleSelectStock = (ticker: string) => {
-    // Run rule analysis directly on select
     handleSearchTicker(ticker);
   };
 
@@ -185,6 +187,7 @@ export default function SigmaPulseTerminal() {
         activeSectorId={activeSectorId}
         onSectorSelect={setActiveSectorId}
         onOpenBacktester={() => setIsBacktestOpen(true)}
+        onOpenFieldGuide={() => setIsFieldGuideOpen(true)}
         isSimulatedLive={isSimulatedLive}
         onToggleSimulatedLive={() => setIsSimulatedLive(!isSimulatedLive)}
         audioEnabled={audioEnabled}
@@ -197,7 +200,7 @@ export default function SigmaPulseTerminal() {
 
       {/* Main Terminal Workspace */}
       <main className="max-w-[1780px] mx-auto px-4 py-5 flex-1 w-full space-y-6">
-        {/* Instant Quantitative Ticker Search & Rule Analysis Command Bar */}
+        {/* Instant Quantitative Ticker Search & 5-Pillar Rule Command Bar */}
         <TickerSearchBar onSearchTicker={handleSearchTicker} />
 
         {/* Sector Navigation Selector */}
@@ -264,7 +267,7 @@ export default function SigmaPulseTerminal() {
                   </h3>
                 </div>
                 <span className="text-[11px] font-mono text-slate-500">
-                  {displayedStocks.length} Assets Active • Click Any Card for Instant Rule Dossier
+                  {displayedStocks.length} Assets Active • Click Any Card for Instant 5-Pillar Dossier
                 </span>
               </div>
 
@@ -312,7 +315,7 @@ export default function SigmaPulseTerminal() {
       <footer className="border-t border-white/10 bg-[#080d1a] py-3 text-center text-xs font-mono text-slate-500">
         <div className="max-w-[1780px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>SigmaPulse Institutional Derivatives & Quantitative News Terminal • v1.0.0 Pro Edition</span>
-          <span className="text-slate-400">Black-Scholes-Merton • Multi-Factor Rules Engine • SEC EDGAR / STOCK Act Ingestion</span>
+          <span className="text-slate-400">Black-Scholes-Merton • 5-Pillar Decision Framework • SEC EDGAR / STOCK Act Ingestion</span>
         </div>
       </footer>
 
@@ -322,6 +325,12 @@ export default function SigmaPulseTerminal() {
         onClose={() => setAnalysisReport(null)}
         onOpenPayoffModal={(strat) => setPayoffModalStrategy(strat)}
         onOpenBacktest={() => setIsBacktestOpen(true)}
+        onOpenFieldGuide={() => setIsFieldGuideOpen(true)}
+      />
+
+      <InteractiveFieldGuideModal
+        isOpen={isFieldGuideOpen}
+        onClose={() => setIsFieldGuideOpen(false)}
       />
 
       <OptionsPayoffModal

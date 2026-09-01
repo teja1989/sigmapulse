@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { QuantitativeSignalReport, EvaluatedRule } from '@/lib/quant/rulesEngine';
+import React, { useState } from 'react';
+import { QuantitativeSignalReport, DecisionPillar, EvaluatedRule } from '@/lib/quant/rulesEngine';
 import { OptionsStrategyStructure } from '@/lib/quant/optionsEngine';
 import { 
   X, 
@@ -19,7 +19,10 @@ import {
   Sparkles,
   ArrowRight,
   DollarSign,
-  Landmark
+  Landmark,
+  HelpCircle,
+  BookOpen,
+  Info
 } from 'lucide-react';
 
 interface TickerAnalysisModalProps {
@@ -27,6 +30,7 @@ interface TickerAnalysisModalProps {
   onClose: () => void;
   onOpenPayoffModal: (strategy: OptionsStrategyStructure) => void;
   onOpenBacktest: () => void;
+  onOpenFieldGuide: () => void;
 }
 
 export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
@@ -34,77 +38,27 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
   onClose,
   onOpenPayoffModal,
   onOpenBacktest,
+  onOpenFieldGuide,
 }) => {
+  const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
+
   if (!report) return null;
 
-  const getVerdictBadge = (verdict: string) => {
-    switch (verdict) {
-      case 'STRONG_BUY_ALPHA':
-        return (
-          <span className="bg-emerald-950/90 text-terminal-green border border-emerald-500/50 px-3 py-1 rounded-lg text-xs font-mono font-extrabold flex items-center space-x-1.5 shadow-glow-green">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-            <span>STRONG BUY ALPHA (OUTRIGHT CONVEXITY)</span>
-          </span>
-        );
-      case 'BULL_CALL_SPREAD':
-        return (
-          <span className="bg-cyan-950/90 text-cyan-300 border border-cyan-500/50 px-3 py-1 rounded-lg text-xs font-mono font-extrabold flex items-center space-x-1.5 shadow-glow-cyan">
-            <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
-            <span>BULL CALL VERTICAL (DEFINED RISK ALPHA)</span>
-          </span>
-        );
-      case 'VOLATILITY_HARVEST':
-        return (
-          <span className="bg-purple-950/90 text-purple-300 border border-purple-500/50 px-3 py-1 rounded-lg text-xs font-mono font-extrabold flex items-center space-x-1.5 shadow-glow-purple">
-            <Flame className="w-3.5 h-3.5 text-purple-400" />
-            <span>VOLATILITY CRUSH / THETA HARVEST (IRON CONDOR)</span>
-          </span>
-        );
-      case 'LONG_STRADDLE_EXPANSION':
-        return (
-          <span className="bg-amber-950/90 text-amber-300 border border-amber-500/50 px-3 py-1 rounded-lg text-xs font-mono font-extrabold flex items-center space-x-1.5 shadow-glow-amber">
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
-            <span>LONG STRADDLE (BINARY VARIANCE EXPANSION)</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="bg-slate-800 text-slate-300 px-3 py-1 rounded-lg text-xs font-mono font-bold">
-            WAIT FOR RANGEBOUND CONFIRMATION
-          </span>
-        );
-    }
-  };
+  const pillarsList = [
+    report.fivePillars.trendPillar,
+    report.fivePillars.volatilityPillar,
+    report.fivePillars.insiderPillar,
+    report.fivePillars.catalystPillar,
+    report.fivePillars.riskRewardPillar,
+  ];
 
-  const getRuleStatusBadge = (status: EvaluatedRule['status']) => {
-    switch (status) {
-      case 'BULLISH_PASS':
-        return (
-          <span className="bg-emerald-950/80 text-terminal-green border border-emerald-500/40 text-[10px] font-mono px-2 py-0.5 rounded font-bold flex items-center space-x-1">
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-            <span>BULLISH PASS</span>
-          </span>
-        );
-      case 'NEUTRAL_PASS':
-        return (
-          <span className="bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 text-[10px] font-mono px-2 py-0.5 rounded font-bold flex items-center space-x-1">
-            <CheckCircle2 className="w-3 h-3 text-cyan-400" />
-            <span>NEUTRAL PASS</span>
-          </span>
-        );
-      case 'WARNING':
-        return (
-          <span className="bg-amber-950/80 text-amber-300 border border-amber-500/40 text-[10px] font-mono px-2 py-0.5 rounded font-bold flex items-center space-x-1">
-            <AlertTriangle className="w-3 h-3 text-amber-400" />
-            <span>WARNING</span>
-          </span>
-        );
-      default:
-        return (
-          <span className="bg-red-950/80 text-terminal-red border border-red-500/40 text-[10px] font-mono px-2 py-0.5 rounded font-bold">
-            FAIL
-          </span>
-        );
+  const getPillarIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'TrendingUp': return <TrendingUp className="w-4 h-4" />;
+      case 'Flame': return <Flame className="w-4 h-4" />;
+      case 'Landmark': return <Landmark className="w-4 h-4" />;
+      case 'Sparkles': return <Sparkles className="w-4 h-4" />;
+      default: return <ShieldCheck className="w-4 h-4" />;
     }
   };
 
@@ -122,7 +76,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 <h2 className="text-xl font-bold font-mono text-white tracking-wider">
                   ${report.ticker}
                 </h2>
-                <span className="text-xs font-mono text-slate-400">
+                <span className="text-xs font-mono text-slate-300">
                   {report.name}
                 </span>
                 <span className="bg-cyan-500/20 text-cyan-300 text-[10px] font-mono px-2 py-0.5 rounded font-bold border border-cyan-500/30">
@@ -140,11 +94,20 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-3">
+            {/* Field Guide Help Trigger */}
+            <button
+              onClick={onOpenFieldGuide}
+              className="flex items-center space-x-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-xs font-mono transition-all"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+              <span>How It Works Guide</span>
+            </button>
+
             {/* Composite Score Circle */}
             <div className="flex flex-col items-end">
               <div className="flex items-center space-x-1.5 bg-gradient-to-r from-cyan-950 to-emerald-950 border border-cyan-500/50 px-3 py-1 rounded-lg text-xs font-mono font-bold text-terminal-green shadow-glow-green">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{report.compositeScore}/100 SCORE</span>
+                <span>{report.compositeScore}/100 SIGMA SCORE</span>
               </div>
               <span className="text-[10px] font-mono text-slate-400 mt-0.5">
                 {report.confidenceLevel} CONVICTION
@@ -162,67 +125,83 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-5 space-y-6">
-          {/* Main Verdict Dossier Banner */}
-          <div className="bg-gradient-to-r from-surface-200 via-cyan-950/20 to-surface-200 border border-cyan-500/30 p-4.5 rounded-xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+          {/* Main Plain-English Recommendation Hero */}
+          <div className="bg-gradient-to-r from-surface-200 via-cyan-950/30 to-surface-200 border border-cyan-500/40 p-5 rounded-2xl shadow-lg relative overflow-hidden">
+            <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center space-x-2">
-                <span className="text-xs font-mono text-slate-400 font-semibold uppercase">
-                  Institutional Rule Verdict:
+                <span className="text-xs font-mono text-slate-400 font-bold uppercase">
+                  VERDICT:
                 </span>
-                {getVerdictBadge(report.verdict)}
+                <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-3 py-0.5 rounded-lg text-xs font-mono font-extrabold shadow-glow-cyan">
+                  {report.verdictTitle}
+                </span>
               </div>
-              <span className="text-xs font-mono text-cyan-300 font-bold">
-                {report.rulesPassedCount} of {report.totalRulesEvaluated} Quantitative Rules Satisfied
+
+              <span className="text-xs font-mono text-terminal-green font-bold">
+                ✓ {report.rulesPassedCount} of {report.totalRulesEvaluated} Signals Aligned
               </span>
             </div>
-            <p className="text-xs text-slate-200 font-sans leading-relaxed">
-              {report.verdictDescription}
+
+            <p className="text-sm text-white font-sans font-medium leading-relaxed mt-2 bg-black/40 p-3 rounded-xl border border-white/5">
+              💡 <strong className="text-cyan-300 font-mono">Plain English Takeaway: </strong> 
+              {report.laymanOneLiner}
             </p>
           </div>
 
-          {/* Congressional Insider Alert (if detected) */}
-          {report.insiderActivityNotice && (
-            <div className="bg-amber-950/30 border border-amber-500/40 p-3.5 rounded-xl flex items-center space-x-3 text-xs font-mono text-amber-200">
-              <Landmark className="w-5 h-5 text-amber-400 shrink-0" />
-              <div>
-                <strong className="text-amber-300 uppercase">Congressional STOCK Act Alert: </strong>
-                {report.insiderActivityNotice}
+          {/* THE 5 DECISION PILLARS GRID */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
+                  The 5 Core Decision Pillars (Layman Interpretation)
+                </h3>
               </div>
-            </div>
-          )}
-
-          {/* 4 Factor Pillar Score Meters */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs">
-            <div className="bg-surface-200/90 border border-white/10 p-3 rounded-xl">
-              <div className="text-slate-400 text-[10px]">TREND MOMENTUM</div>
-              <div className="text-lg font-bold text-cyan-300 mt-1">{report.factorScores.trendScore}%</div>
-              <div className="w-full bg-black/40 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                <div className="bg-cyan-400 h-full rounded-full" style={{ width: `${report.factorScores.trendScore}%` }} />
-              </div>
+              <span className="text-[11px] font-mono text-slate-400">
+                Click any pillar for deep explanation
+              </span>
             </div>
 
-            <div className="bg-surface-200/90 border border-white/10 p-3 rounded-xl">
-              <div className="text-slate-400 text-[10px]">IV RANK ENVIRONMENT</div>
-              <div className="text-lg font-bold text-purple-300 mt-1">{report.factorScores.volatilityScore}%</div>
-              <div className="w-full bg-black/40 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                <div className="bg-purple-400 h-full rounded-full" style={{ width: `${report.factorScores.volatilityScore}%` }} />
-              </div>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+              {pillarsList.map((pillar) => {
+                const isSelected = selectedPillar === pillar.id;
+                return (
+                  <div
+                    key={pillar.id}
+                    onClick={() => setSelectedPillar(isSelected ? null : pillar.id)}
+                    className={`bg-surface-200/90 border p-3.5 rounded-xl cursor-pointer transition-all flex flex-col justify-between ${
+                      isSelected ? 'border-cyan-400 shadow-glow-cyan bg-surface-100' : 'border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div
+                          className="p-1.5 rounded-lg"
+                          style={{ backgroundColor: `${pillar.color}20`, color: pillar.color }}
+                        >
+                          {getPillarIcon(pillar.iconName)}
+                        </div>
+                        <span className="font-mono font-bold text-sm" style={{ color: pillar.color }}>
+                          {pillar.score}%
+                        </span>
+                      </div>
 
-            <div className="bg-surface-200/90 border border-white/10 p-3 rounded-xl">
-              <div className="text-slate-400 text-[10px]">MOMENTUM VELOCITY</div>
-              <div className="text-lg font-bold text-terminal-green mt-1">{report.factorScores.momentumScore}%</div>
-              <div className="w-full bg-black/40 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                <div className="bg-terminal-green h-full rounded-full" style={{ width: `${report.factorScores.momentumScore}%` }} />
-              </div>
-            </div>
+                      <div className="font-bold text-xs text-white truncate font-mono">
+                        {pillar.shortLabel}
+                      </div>
 
-            <div className="bg-surface-200/90 border border-white/10 p-3 rounded-xl">
-              <div className="text-slate-400 text-[10px]">CATALYST WIN RATE</div>
-              <div className="text-lg font-bold text-amber-300 mt-1">{report.factorScores.catalystScore}%</div>
-              <div className="w-full bg-black/40 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                <div className="bg-amber-400 h-full rounded-full" style={{ width: `${report.factorScores.catalystScore}%` }} />
-              </div>
+                      <p className="text-[11px] text-slate-300 font-sans mt-1 line-clamp-2">
+                        {pillar.plainEnglishSummary}
+                      </p>
+                    </div>
+
+                    <div className="mt-2.5 pt-2 border-t border-white/5 text-[10px] font-mono text-slate-500 flex items-center justify-between">
+                      <span>{pillar.status}</span>
+                      <Info className="w-3 h-3 text-slate-400" />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -244,7 +223,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                   className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center space-x-1.5 transition-all shadow-glow-cyan"
                 >
                   <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Launch Payoff Sandbox</span>
+                  <span>Interactive Payoff Sandbox</span>
                 </button>
 
                 <button
@@ -252,7 +231,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                   className="bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-600/40 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center space-x-1.5 transition-all"
                 >
                   <Activity className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Backtest Event</span>
+                  <span>Backtest Precedent</span>
                 </button>
               </div>
             </div>
@@ -260,7 +239,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
             {/* Greeks & Risk Parameters */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-xs font-mono">
               <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">NET DEBIT / COST</div>
+                <div className="text-slate-500 text-[10px]">ENTRY COST (DEBIT)</div>
                 <div className="font-bold text-white mt-0.5">
                   ${Math.abs(report.recommendedStrategy.netDebit).toFixed(2)}
                 </div>
@@ -281,7 +260,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
               </div>
 
               <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">PROB. OF PROFIT</div>
+                <div className="text-slate-500 text-[10px]">WIN PROBABILITY</div>
                 <div className="font-bold text-cyan-300 mt-0.5">
                   {report.recommendedStrategy.probabilityOfProfit}% PoP
                 </div>
@@ -296,17 +275,17 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
             </div>
           </div>
 
-          {/* Evaluated Rules Matrix Table */}
+          {/* Evaluated Rulebook & Factor Validation Matrix */}
           <div className="bg-surface-200/90 border border-white/10 rounded-xl p-4">
             <h4 className="text-xs font-mono font-bold text-slate-300 mb-3 uppercase tracking-wider">
-              Evaluated Rulebook & Factor Validation Matrix
+              Underlying Signals & Factor Verification Matrix
             </h4>
             <div className="overflow-x-auto">
               <table className="w-full text-xs font-mono text-left">
                 <thead>
                   <tr className="text-slate-500 border-b border-white/10 pb-2">
                     <th className="pb-2">CATEGORY</th>
-                    <th className="pb-2">RULE NAME</th>
+                    <th className="pb-2">SIGNAL RULE</th>
                     <th className="pb-2">ACTUAL METRIC</th>
                     <th className="pb-2">STATUS</th>
                     <th className="pb-2">RATIONALE</th>
@@ -318,7 +297,11 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                       <td className="py-2.5 text-slate-400 font-bold text-[10px]">{rule.category}</td>
                       <td className="py-2.5 font-semibold text-white max-w-[180px]">{rule.name}</td>
                       <td className="py-2.5 text-cyan-300 font-bold">{rule.actualValue}</td>
-                      <td className="py-2.5">{getRuleStatusBadge(rule.status)}</td>
+                      <td className="py-2.5">
+                        <span className="bg-emerald-950/80 text-terminal-green border border-emerald-500/40 text-[10px] font-mono px-2 py-0.5 rounded font-bold">
+                          {rule.status}
+                        </span>
+                      </td>
                       <td className="py-2.5 text-slate-300 font-sans text-[11px] leading-relaxed max-w-[280px]">
                         {rule.rationale}
                       </td>
@@ -333,7 +316,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
         {/* Footer */}
         <div className="p-4 border-t border-white/10 bg-surface-200/80 flex items-center justify-between">
           <div className="text-xs font-mono text-slate-400">
-            Black-Scholes-Merton Options Engine • Historical Precedent Replay • Quantitative Factor Validation
+            5-Pillar Decision Framework • Black-Scholes Mathematical Engine • 100% Capped Risk
           </div>
           <button
             onClick={onClose}

@@ -1,71 +1,76 @@
-# Σ SigmaPulse — Architecture, Data Ingestion & Quantitative Signal Engine
+# Σ SigmaPulse — Architecture, 5-Pillar Decision Framework & Data Ingestion
 
 ## 1. System Architecture Overview
 
-SigmaPulse is engineered as a high-density, institutional-grade quantitative trading platform. It unifies three core distributed layers:
+SigmaPulse is engineered as a high-density, institutional-grade quantitative trading platform. It unifies distributed data crawlers, mathematical derivatives pricing, and an intuitive **5-Pillar Decision Framework**:
 
 ```mermaid
 graph TD
     A[Data Ingestion Layer] -->|SEC EDGAR / FDA / Financial Feeds / Streaming Ticks| B[Real-Time Normalizer & NLP Pipeline]
-    B --> C[Quantitative Multi-Factor Rules Engine]
+    B --> C[5-Pillar Quantitative Decision Engine]
     
-    C --> D[Black-Scholes-Merton Derivatives Engine]
-    C --> E[Event-Driven Precedent Backtester]
-    C --> F[Congressional STOCK Act Tracker]
+    C --> P1[Pillar 1: Price Trend & Momentum]
+    C --> P2[Pillar 2: Volatility & Pricing Value IVR]
+    C --> P3[Pillar 3: Smart Money & Congressional Flow]
+    C --> P4[Pillar 4: Catalyst & Event Precedent Power]
+    C --> P5[Pillar 5: Downside Safety & PoP]
     
-    D --> G[Actionable Strategy Generator]
-    E --> G
-    F --> G
+    P1 & P2 & P3 & P4 & P5 --> D[Composite Sigma Score 0-100 & Plain-English Verdict]
+    D --> E[Black-Scholes Mathematical Strategy Generator]
     
-    G --> H[Institutional Terminal UI]
-    H --> I[Dynamic Sector Matrix]
-    H --> J[Ticker Quantitative Dossier]
-    H --> K[Interactive Greeks & Payoff Sandbox]
-    H --> L[Level 2 Order Book Depth]
+    E --> F[Institutional Terminal UI]
+    F --> G[Interactive Ticker Analysis Dossier]
+    F --> H[Interactive Field Guide & Academy]
+    F --> I[Greeks & Payoff Scenario Simulator]
 ```
 
 ---
 
-## 2. Where the Data Comes From & Real-Time Engine
+## 2. The 5-Pillar Decision Framework (Layman Friendly, Institutional Underneath)
 
-### A. Data Sources & Connectors
-1. **Regulatory & Government Sources**:
-   - **SEC EDGAR (8-K, 10-Q, 10-K, Form 4)**: Direct periodic transaction reports (PTR) under the STOCK Act and corporate event disclosures.
-   - **FDA Regulatory Filings**: PDUFA target action dates, Advisory Committee votes, and Fast Track/Breakthrough designations.
-   - **Capitol Trades & House/Senate Disclosures**: Daily disclosure scraping for Congressional committees (Armed Services, Intelligence, Energy & Commerce).
-2. **Financial News & Sentiment Feeds**:
-   - Institutional wires, Bloomberg/Reuters RSS feeds, and specialized defense/quantum industry publications.
-   - Autonomous NLP classifier scoring sentiment from $-1.0$ (Very Bearish) to $+1.0$ (Very Bullish) with urgency weighting (`EXTREME`, `HIGH`, `MEDIUM`).
-3. **Price & Volatility Market Data**:
-   - Integration with open market connectors (Finnhub, Alpha Vantage, Yahoo Finance).
-   - High-precision sub-second streaming emulator generating realistic Brownian micro-ticks ($\pm 0.05\% - 0.2\%$), live order book bid/ask depth (L2), and volatility spreads.
+To make high-level quantitative analysis accessible for any trader without sacrificing mathematical depth, SigmaPulse condenses dozens of underlying signals into **5 Plain-English Decision Pillars**:
+
+### 📈 Pillar 1: Price Trend & Momentum (Weight: 22%)
+- **Layman Meaning**: *Is the stock moving up with real buyer strength?*
+- **Underlying Signals**: 20/50/200 EMA crossovers, 14-day RSI accumulation velocity, support/resistance channel proximity, and relative volume surges.
+- **Score (0-100)**: $> 80$ indicates strong institutional accumulation with low selling pressure.
+
+### ⚡ Pillar 2: Volatility & Pricing Value (IVR) (Weight: 20%)
+- **Layman Meaning**: *Are options on sale, or are they expensive enough to sell for daily income?*
+- **Underlying Signals**: Implied Volatility Rank (IVR), IV vs Historical Volatility Spread, Volatility Skew.
+- **Score (0-100)**:
+  - **$\text{IVR} \le 35\%$**: Options are cheap $\rightarrow$ Outright Long Calls / Straddles.
+  - **$\text{IVR} \ge 70\%$**: Options are expensive $\rightarrow$ Vertical Debit Spreads or Iron Condors to harvest daily theta decay.
+
+### 🏛️ Pillar 3: Smart Money & Congressional Flow (Weight: 18%)
+- **Layman Meaning**: *Are politicians and corporate insiders buying?*
+- **Underlying Signals**: Real-time STOCK Act disclosures cross-referenced with Congressional committee assignments (Armed Services, Intelligence, Health) and committee conflict indices.
+- **Score (0-100)**: High score indicates active accumulation by influential policymakers ahead of major legislation.
+
+### 🎯 Pillar 4: Catalyst & Event Power (Weight: 22%)
+- **Layman Meaning**: *What upcoming news event will spark the price jump, and how reliably has it worked in the past?*
+- **Underlying Signals**: 10-year historical backtest distribution for matching catalyst types (FDA PDUFA dates, Quantum hardware benchmarks, CHIPS Act subsidies, Defense awards).
+- **Score (0-100)**: Proportional to the historical 5-day and 30-day win rate (e.g. 86% win rate $\rightarrow$ 86/100 score).
+
+### 🛡️ Pillar 5: Downside Safety & Protection (Weight: 18%)
+- **Layman Meaning**: *Is your money protected if the market suddenly drops?*
+- **Underlying Signals**: Probability of Profit (PoP), strict maximum loss capping (net debit risk limit), and delta-hedging buffer.
+- **Score (0-100)**: High score guarantees defined asymmetric risk where maximum loss is known in advance and cannot exceed the initial debit.
 
 ---
 
-## 3. The Quantitative Rules Engine (`rulesEngine.ts`)
+## 3. Where the Data Comes From & Real-Time Engine
 
-When a user searches for any ticker (or clicks any asset card), SigmaPulse runs a **6-Factor Quantitative Rule Evaluation**:
-
-### Rule 1: Price Structure & Support/Resistance Proximity (Weight: 8)
-- Evaluates whether spot price is compressing near upper resistance bands with volume expansion or holding support corridors.
-
-### Rule 2: 14-Period RSI Relative Strength Momentum (Weight: 7)
-- Validates institutional accumulation zones ($60 \le \text{RSI} < 75$) vs overbought exhaustion ($\text{RSI} > 75$) vs oversold mean-reversion ($\text{RSI} < 40$).
-
-### Rule 3: Implied Volatility Rank (IVR) Environment (Weight: 9)
-$$\text{IVR} = \frac{\text{IV}_{\text{current}} - \text{IV}_{\text{52w\_low}}}{\text{IV}_{\text{52w\_high}} - \text{IV}_{\text{52w\_low}}} \times 100$$
-- $\text{IVR} \ge 70\%$: Rich option premiums $\rightarrow$ Recommends **Volatility Harvest (Iron Condors / Credit Spreads)** or **Debit Spreads** with sold upper legs.
-- $\text{IVR} \le 35\%$: Cheap option premiums $\rightarrow$ Recommends **Outright Long Calls or Long Straddles**.
-
-### Rule 4: Implied vs Realized Volatility Spread (Weight: 7)
-$$\text{Spread} = \text{IV} - \text{HV}$$
-- Evaluates if the derivatives market is pricing in an imminent variance expansion shock ahead of catalysts.
-
-### Rule 5: Quantitative Event Precedent Realization Rate (Weight: 9)
-- Matches the asset's upcoming catalyst (FDA, Quantum milestone, CHIPS grant, etc.) against a 10-year precedent database to verify $\ge 70\%$ historical win-rate drift.
-
-### Rule 6: Congressional STOCK Act Insider Correlation (Weight: 10)
-- Cross-references committee assignments (e.g. Armed Services reviewing DoD awards) with transaction types and disclosure lag.
+### A. Real-Time Data Feeds
+1. **Regulatory & Congressional Sources**:
+   - **SEC EDGAR (8-K, 10-Q, Form 4)**: Real-time corporate and insider transaction tracking.
+   - **Capitol Trades & STOCK Act Reports**: Monitored daily for House and Senate disclosures.
+   - **FDA Regulatory Filings**: PDUFA target dates and Advisory Committee endorsements.
+2. **Financial News & Sentiment Feeds**:
+   - Institutional wires, Bloomberg/Reuters RSS feeds, and specialized defense/quantum publications.
+   - NLP sentiment classifier scoring each article from $-1.0$ (Very Bearish) to $+1.0$ (Very Bullish) with urgency weighting (`EXTREME`, `HIGH`, `MEDIUM`).
+3. **Price & Volatility Market Engine**:
+   - High-precision sub-second tick engine generating realistic Brownian micro-ticks, dynamic bid/ask spreads, and level-2 order book depth.
 
 ---
 
@@ -77,15 +82,15 @@ $$d_1 = \frac{\ln(S / K) + (r - q + \frac{1}{2}\sigma^2)T}{\sigma \sqrt{T}}, \qu
 $$\text{Call Price} = S e^{-qT} \Phi(d_1) - K e^{-rT} \Phi(d_2)$$
 $$\text{Put Price} = K e^{-rT} \Phi(-d_2) - S e^{-qT} \Phi(-d_1)$$
 
-Where $\Phi(x)$ is computed via the Hart / Abramowitz-Stegun high-precision polynomial rational approximation:
-$$\Phi(x) = 1 - \phi(x)(a_1 t + a_2 t^2 + a_3 t^3 + a_4 t^4 + a_5 t^5), \quad t = \frac{1}{1 + px}$$
+Where $\Phi(x)$ is computed via the Hart polynomial rational approximation.
 
 ### B. Analytical Greeks Sensitivities
-- **Delta**: $\Delta_{\text{call}} = e^{-qT}\Phi(d_1), \quad \Delta_{\text{put}} = -e^{-qT}\Phi(-d_1)$
-- **Gamma**: $\Gamma = \frac{e^{-qT}\phi(d_1)}{S \sigma \sqrt{T}}$
-- **Vega**: $\nu = S e^{-qT}\phi(d_1)\sqrt{T} \times 0.01$
-- **Theta (Daily)**: $\Theta_{\text{daily}} = \frac{\Theta_{\text{annual}}}{365}$
+- **Delta ($\Delta$)**: $\partial V / \partial S$
+- **Gamma ($\Gamma$)**: $\partial^2 V / \partial S^2$
+- **Theta ($\Theta$)**: $\partial V / \partial t$ (Daily decay $\Theta / 365$)
+- **Vega ($\nu$)**: $\partial V / \partial \sigma \times 0.01$
+- **Rho ($\rho$)**: $\partial V / \partial r \times 0.01$
 
 ### C. Implied Volatility Solver (Newton-Raphson)
 $$\sigma_{n+1} = \sigma_n - \frac{C_{\text{BS}}(\sigma_n) - C_{\text{market}}}{\nu(\sigma_n)}$$
-With automatic bisection boundary fallbacks.
+With automatic bisection fallback.

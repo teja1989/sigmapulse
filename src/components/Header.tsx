@@ -12,7 +12,8 @@ import {
   VolumeX, 
   ShieldCheck,
   Zap,
-  Globe
+  Globe,
+  BookOpen
 } from 'lucide-react';
 import { MarketMacroStats } from '@/lib/data/liveMarketSimulator';
 
@@ -21,6 +22,7 @@ interface HeaderProps {
   activeSectorId: string;
   onSectorSelect: (id: string) => void;
   onOpenBacktester: () => void;
+  onOpenFieldGuide: () => void;
   isSimulatedLive: boolean;
   onToggleSimulatedLive: () => void;
   audioEnabled: boolean;
@@ -33,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeSectorId,
   onSectorSelect,
   onOpenBacktester,
+  onOpenFieldGuide,
   isSimulatedLive,
   onToggleSimulatedLive,
   audioEnabled,
@@ -116,6 +119,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Global Controls & Actions */}
         <div className="flex items-center space-x-2 text-xs">
+          {/* Interactive Guide / Academy Trigger */}
+          <button
+            onClick={onOpenFieldGuide}
+            className="flex items-center space-x-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-1.5 rounded-lg transition-all text-xs font-mono"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">How It Works Guide</span>
+          </button>
+
           {/* Inject Breaking Catalyst */}
           <button
             onClick={onTriggerNewsFlash}
@@ -123,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center space-x-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1.5 rounded-lg transition-all text-xs font-mono"
           >
             <Zap className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Inject News Flash</span>
+            <span className="hidden sm:inline">Inject Flash</span>
           </button>
 
           {/* Quantitative Backtester Workbench Trigger */}
@@ -146,7 +158,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Radio className={`w-3.5 h-3.5 ${isSimulatedLive ? 'text-emerald-400 animate-pulse' : ''}`} />
-            <span className="hidden md:inline">{isSimulatedLive ? 'Stream: ON' : 'Stream: PAUSED'}</span>
+            <span className="hidden md:inline">{isSimulatedLive ? 'Stream ON' : 'Stream PAUSED'}</span>
           </button>
 
           {/* Sound Toggle */}
