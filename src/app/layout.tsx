@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { WatchlistProvider } from '@/context/WatchlistContext';
 
 export const metadata: Metadata = {
   title: 'SigmaPulse — Institutional Quantitative Trading Terminal & Derivatives Intelligence',
@@ -22,7 +24,11 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#06090e] text-slate-100 min-h-screen antialiased selection:bg-cyan-500 selection:text-black">
-        {children}
+        <ThemeProvider>
+          <WatchlistProvider>
+            {children}
+          </WatchlistProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

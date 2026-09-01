@@ -24,6 +24,7 @@ import { BacktestWorkbenchModal } from '@/components/BacktestWorkbenchModal';
 import { StockDetailModal } from '@/components/StockDetailModal';
 import { TickerAnalysisModal } from '@/components/TickerAnalysisModal';
 import { InteractiveFieldGuideModal } from '@/components/InteractiveFieldGuideModal';
+import { WatchlistDrawer } from '@/components/WatchlistDrawer';
 
 import { 
   Zap, 
@@ -59,6 +60,7 @@ export default function SigmaPulseTerminal() {
   const [detailModalStock, setDetailModalStock] = useState<StockAsset | null>(null);
   const [analysisReport, setAnalysisReport] = useState<QuantitativeSignalReport | null>(null);
   const [isFieldGuideOpen, setIsFieldGuideOpen] = useState<boolean>(false);
+  const [isWatchlistOpen, setIsWatchlistOpen] = useState<boolean>(false);
 
   // Audio chime
   const playAlertChime = () => {
@@ -153,17 +155,14 @@ export default function SigmaPulseTerminal() {
     playAlertChime();
   };
 
-  // Real-time live search handler: Fetches real market quotes and runs 5-pillar rules
+  // Real-time live search handler
   const handleSearchTicker = async (ticker: string) => {
     setIsSearching(true);
     try {
-      // 1. Fetch real-time market data
       const liveStock = await fetchLiveStockQuote(ticker);
-      // 2. Evaluate 5-Pillar Decision Framework with live quote
       const report = analyzeTickerSignals(liveStock);
       setAnalysisReport(report);
     } catch (err) {
-      // Fallback
       const report = analyzeTickerSignals(ticker);
       setAnalysisReport(report);
     } finally {
@@ -192,14 +191,15 @@ export default function SigmaPulseTerminal() {
   };
 
   return (
-    <div className="min-h-screen bg-[#06090e] text-slate-100 flex flex-col font-sans">
-      {/* Top Institutional Header Bar */}
+    <div className="min-h-screen bg-[#06090e] text-slate-100 flex flex-col font-sans transition-colors duration-300">
+      {/* Top Institutional Header Bar with Theme Switcher & Watchlist */}
       <Header
         macroStats={macroStats}
         activeSectorId={activeSectorId}
         onSectorSelect={setActiveSectorId}
         onOpenBacktester={() => setIsBacktestOpen(true)}
         onOpenFieldGuide={() => setIsFieldGuideOpen(true)}
+        onOpenWatchlist={() => setIsWatchlistOpen(true)}
         isSimulatedLive={isSimulatedLive}
         onToggleSimulatedLive={() => setIsSimulatedLive(!isSimulatedLive)}
         audioEnabled={audioEnabled}
@@ -327,9 +327,18 @@ export default function SigmaPulseTerminal() {
       <footer className="border-t border-white/10 bg-[#080d1a] py-3 text-center text-xs font-mono text-slate-500">
         <div className="max-w-[1780px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>SigmaPulse Institutional Derivatives & Quantitative News Terminal • v1.0.0 Pro Edition</span>
-          <span className="text-slate-400">Black-Scholes-Merton • 5-Pillar Decision Framework • Live Market Ingestion</span>
+          <span className="text-slate-400">Black-Scholes-Merton • 5-Pillar Decision Framework • Multi-Theme Engine</span>
         </div>
       </footer>
+
+      {/* Watchlist Drawer */}
+      <WatchlistDrawer
+        isOpen={isWatchlistOpen}
+        onClose={() => setIsWatchlistOpen(false)}
+        allStocks={allStocks}
+        onSelectStock={handleSelectStock}
+        onOpenOptions={handleOpenOptions}
+      />
 
       {/* Modals */}
       <TickerAnalysisModal

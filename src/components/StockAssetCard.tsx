@@ -7,18 +7,21 @@ import {
   TrendingDown, 
   Flame, 
   Calendar, 
-  Target, 
-  Zap, 
-  ArrowUpRight,
-  BarChart2,
-  ShieldAlert
+  Sliders, 
+  Activity, 
+  ShieldCheck,
+  Zap,
+  Target,
+  Sparkles,
+  Star
 } from 'lucide-react';
+import { useWatchlist } from '@/context/WatchlistContext';
 
 interface StockAssetCardProps {
   stock: StockAsset;
   onSelectStock: (ticker: string) => void;
   onOpenOptions: (ticker: string) => void;
-  onOpenBacktest: (catalystCategory?: string) => void;
+  onOpenBacktest: () => void;
 }
 
 export const StockAssetCard: React.FC<StockAssetCardProps> = ({
@@ -27,154 +30,136 @@ export const StockAssetCard: React.FC<StockAssetCardProps> = ({
   onOpenOptions,
   onOpenBacktest,
 }) => {
-  const isUp = stock.change >= 0;
-  const upsidePercent = Number((((stock.priceTarget - stock.price) / stock.price) * 100).toFixed(1));
+  const { isWatchlisted, toggleWatchlist } = useWatchlist();
+  const isStarred = isWatchlisted(stock.ticker);
+  const isPositive = stock.change >= 0;
 
-  // Sparkline SVG generator
-  const minVal = Math.min(...stock.sparkline);
-  const maxVal = Math.max(...stock.sparkline);
-  const range = maxVal - minVal || 1;
-  const width = 140;
-  const height = 36;
-  const points = stock.sparkline
+  // Normalize sparkline
+  const minSpark = Math.min(...stock.sparkline);
+  const maxSpark = Math.max(...stock.sparkline);
+  const sparkRange = maxSpark - minSpark || 1;
+
+  const sparkPoints = stock.sparkline
     .map((val, idx) => {
-      const x = (idx / (stock.sparkline.length - 1)) * width;
-      const y = height - ((val - minVal) / range) * (height - 6) - 3;
+      const x = (idx / (stock.sparkline.length - 1)) * 100;
+      const y = 30 - ((val - minSpark) / sparkRange) * 25;
       return `${x},${y}`;
     })
     .join(' ');
 
   return (
-    <div className="bg-surface-200/80 hover:bg-surface-100/90 border border-white/10 hover:border-cyan-500/40 rounded-xl p-4 transition-all duration-200 flex flex-col justify-between group shadow-md hover:shadow-glow-cyan">
-      {/* Top Header */}
+    <div className="bg-surface-200/90 hover:bg-surface-100/90 border border-white/10 hover:border-cyan-500/50 rounded-xl p-4 transition-all group flex flex-col justify-between shadow-lg hover:shadow-glow-cyan">
       <div>
+        {/* Top Header */}
         <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-mono font-bold text-lg text-white tracking-wider group-hover:text-cyan-300 transition-colors">
-                {stock.ticker}
-              </span>
-              <span className="text-[11px] font-mono text-slate-400 truncate max-w-[130px]">
-                {stock.name}
-              </span>
-            </div>
-            <div className="text-[10px] font-mono text-slate-500 mt-0.5">
-              Cap: {stock.marketCap} • P/E: {stock.peRatio > 0 ? stock.peRatio : 'N/A'} • Vol: {stock.volume}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleWatchlist(stock.ticker);
+              }}
+              title={isStarred ? 'Remove from Watchlist' : 'Add to Watchlist'}
+              className="p-1 rounded text-slate-500 hover:text-amber-400 transition-colors"
+            >
+              <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+            </button>
+
+            <div>
+              <div className="flex items-center space-x-2">
+                <span 
+                  onClick={() => onSelectStock(stock.ticker)}
+                  className="font-mono font-bold text-lg text-white hover:text-cyan-300 cursor-pointer tracking-wide"
+                >
+                  ${stock.ticker}
+                </span>
+                <span className="text-xs font-mono text-slate-400 truncate max-w-[120px]">
+                  {stock.name}
+                </span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-500 mt-0.5">
+                Vol: <span className="text-slate-300">{stock.volume}</span> • MktCap: <span className="text-slate-300">{stock.marketCap}</span>
+              </div>
             </div>
           </div>
 
-          {/* Sparkline Graphic */}
-          <div className="w-[120px] h-[36px] flex items-center justify-end">
-            <svg width={width} height={height} className="overflow-visible">
-              <defs>
-                <linearGradient id={`grad-${stock.ticker}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor={isUp ? '#00FF66' : '#FF3366'} stopOpacity="0.4" />
-                  <stop offset="100%" stopColor={isUp ? '#00FF66' : '#FF3366'} stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
+          {/* Price & Change */}
+          <div className="text-right">
+            <div className="font-mono font-bold text-lg text-white tabular-nums">
+              ${stock.price.toFixed(2)}
+            </div>
+            <div className={`text-xs font-mono font-semibold flex items-center justify-end space-x-0.5 ${isPositive ? 'text-terminal-green' : 'text-terminal-red'}`}>
+              {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+              <span>{isPositive ? '+' : ''}{stock.change.toFixed(2)} ({isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Mini Sparkline & Technical Gauges */}
+        <div className="grid grid-cols-12 gap-3 my-3 items-center">
+          <div className="col-span-6 h-8 flex items-center">
+            <svg viewBox="0 0 100 35" className="w-full h-full overflow-visible">
               <polyline
                 fill="none"
-                stroke={isUp ? '#00FF66' : '#FF3366'}
+                stroke={isPositive ? '#00FF66' : '#FF3366'}
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                points={points}
+                points={sparkPoints}
               />
             </svg>
           </div>
-        </div>
 
-        {/* Spot Price & Change */}
-        <div className="mt-3 flex items-baseline justify-between">
-          <div className="flex items-baseline space-x-2">
-            <span className="text-2xl font-bold font-mono text-white tabular-nums">
-              ${stock.price.toFixed(2)}
-            </span>
-            <span
-              className={`inline-flex items-center text-xs font-mono font-semibold tabular-nums px-2 py-0.5 rounded ${
-                isUp
-                  ? 'bg-emerald-950/60 text-terminal-green border border-emerald-800/40'
-                  : 'bg-red-950/60 text-terminal-red border border-red-800/40'
-              }`}
-            >
-              {isUp ? <TrendingUp className="w-3 h-3 mr-1 inline" /> : <TrendingDown className="w-3 h-3 mr-1 inline" />}
-              {isUp ? '+' : ''}${stock.change.toFixed(2)} ({isUp ? '+' : ''}{stock.changePercent.toFixed(2)}%)
-            </span>
-          </div>
-
-          {/* Implied Volatility Rank Tag */}
-          <div className="flex items-center space-x-1 font-mono text-xs">
-            <span
-              className={`px-2 py-0.5 rounded font-semibold text-[11px] flex items-center space-x-1 ${
-                stock.ivRank >= 70
-                  ? 'bg-purple-950/80 text-purple-300 border border-purple-500/40'
-                  : stock.ivRank >= 45
-                  ? 'bg-blue-950/80 text-blue-300 border border-blue-500/40'
-                  : 'bg-slate-800 text-slate-300 border border-slate-700'
-              }`}
-            >
-              <Flame className="w-3 h-3 text-purple-400" />
-              <span>IVR {stock.ivRank}%</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Institutional Quant Grid */}
-        <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/5 text-[11px] font-mono">
-          <div className="bg-black/30 p-2 rounded border border-white/5">
-            <div className="text-slate-500 text-[10px]">RSI (14D)</div>
-            <div className={`font-semibold ${stock.rsi14 >= 70 ? 'text-amber-400' : stock.rsi14 <= 35 ? 'text-cyan-400' : 'text-slate-200'}`}>
-              {stock.rsi14} {stock.rsi14 >= 70 ? '• Overbought' : stock.rsi14 <= 35 ? '• Oversold' : '• Neutral'}
+          <div className="col-span-6 grid grid-cols-2 gap-2 text-[11px] font-mono text-right">
+            <div className="bg-black/30 p-1 rounded border border-white/5">
+              <span className="text-slate-500 block text-[9px]">IV RANK</span>
+              <span className={`font-bold ${stock.ivRank >= 70 ? 'text-purple-400' : 'text-cyan-400'}`}>
+                {stock.ivRank}%
+              </span>
             </div>
-          </div>
-
-          <div className="bg-black/30 p-2 rounded border border-white/5">
-            <div className="text-slate-500 text-[10px]">IV / HV SPREAD</div>
-            <div className="font-semibold text-slate-200">
-              {stock.impliedVol}% / {stock.historicalVol}%
-            </div>
-          </div>
-
-          <div className="bg-black/30 p-2 rounded border border-white/5">
-            <div className="text-slate-500 text-[10px]">TARGET UPSIDE</div>
-            <div className="font-semibold text-terminal-green">
-              ${stock.priceTarget} (+{upsidePercent}%)
+            <div className="bg-black/30 p-1 rounded border border-white/5">
+              <span className="text-slate-500 block text-[9px]">RSI (14D)</span>
+              <span className="font-bold text-terminal-green">
+                {stock.rsi14}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Catalyst Preview */}
-        <div className="mt-3 bg-gradient-to-r from-cyan-950/30 to-blue-950/20 border border-cyan-500/20 p-2.5 rounded-lg text-xs">
-          <div className="flex items-center justify-between text-[10px] font-mono text-cyan-400 mb-1">
-            <span className="flex items-center space-x-1">
-              <Calendar className="w-3 h-3" />
-              <span>NEXT CATALYST: {stock.catalystDate}</span>
-            </span>
-            <span className="font-bold text-amber-300">Sentiment {stock.sentimentScore}%</span>
+        {/* Catalyst Ribbon */}
+        <div className="bg-cyan-950/20 border border-cyan-500/20 rounded-lg p-2 text-xs flex items-start space-x-2">
+          <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+          <div className="font-sans text-[11px] text-slate-300 leading-tight">
+            <strong className="text-white font-mono">{stock.catalystDate}:</strong> {stock.upcomingCatalyst}
           </div>
-          <p className="text-[11px] text-slate-300 line-clamp-1 font-sans">
-            {stock.upcomingCatalyst}
-          </p>
         </div>
       </div>
 
       {/* Action Footer */}
-      <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between gap-2">
-        <button
-          onClick={() => onOpenOptions(stock.ticker)}
-          className="flex-1 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:border-cyan-500/60 py-1.5 px-2.5 rounded-lg text-xs font-mono font-semibold flex items-center justify-center space-x-1 transition-all"
-        >
-          <Zap className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Options Alpha</span>
-        </button>
-
+      <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-xs font-mono">
         <button
           onClick={() => onSelectStock(stock.ticker)}
-          className="bg-surface-100 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 py-1.5 px-3 rounded-lg text-xs font-mono flex items-center justify-center space-x-1 transition-all"
+          className="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 transition-colors text-[11px] font-semibold"
         >
-          <BarChart2 className="w-3.5 h-3.5 text-slate-400" />
-          <span>Terminal</span>
+          <Sparkles className="w-3 h-3 text-cyan-400" />
+          <span>5-Pillar Audit</span>
         </button>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => onOpenOptions(stock.ticker)}
+            className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-1 rounded text-[11px] font-semibold flex items-center space-x-1 transition-all shadow-glow-cyan"
+          >
+            <Sliders className="w-3 h-3 text-cyan-400" />
+            <span>Options</span>
+          </button>
+
+          <button
+            onClick={onOpenBacktest}
+            className="bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-600/30 px-2 py-1 rounded text-[11px] transition-all"
+          >
+            Backtest
+          </button>
+        </div>
       </div>
     </div>
   );

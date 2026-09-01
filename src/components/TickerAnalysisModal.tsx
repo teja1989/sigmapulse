@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { QuantitativeSignalReport, DecisionPillar, EvaluatedRule } from '@/lib/quant/rulesEngine';
 import { OptionsStrategyStructure } from '@/lib/quant/optionsEngine';
+import { BROKERS } from '@/lib/broker/brokerLinks';
+import { useWatchlist } from '@/context/WatchlistContext';
 import { 
   X, 
   Zap, 
@@ -22,7 +24,9 @@ import {
   Landmark, 
   HelpCircle, 
   BookOpen, 
-  Info 
+  Info,
+  Star,
+  ExternalLink
 } from 'lucide-react';
 
 interface TickerAnalysisModalProps {
@@ -41,9 +45,11 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
   onOpenFieldGuide,
 }) => {
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
+  const { isWatchlisted, toggleWatchlist } = useWatchlist();
 
   if (!report) return null;
 
+  const isStarred = isWatchlisted(report.ticker);
   const pillarsList = [
     report.fivePillars.trendPillar,
     report.fivePillars.volatilityPillar,
@@ -86,9 +92,16 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 <span className="bg-cyan-500/20 text-cyan-300 text-[10px] font-mono px-2 py-0.5 rounded font-bold border border-cyan-500/30">
                   {report.sector}
                 </span>
+                <button
+                  onClick={() => toggleWatchlist(report.ticker)}
+                  title={isStarred ? 'Remove from Watchlist' : 'Pin to Watchlist'}
+                  className="p-1 rounded text-slate-400 hover:text-amber-400"
+                >
+                  <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
+                </button>
               </div>
               <div className="flex items-center space-x-3 text-xs font-mono text-slate-400 mt-1">
-                <span>Stock Spot Price: <strong className="text-white">${report.spotPrice.toFixed(2)}</strong></span>
+                <span>Stock Spot: <strong className="text-white">${report.spotPrice.toFixed(2)}</strong></span>
                 <span>•</span>
                 <span>Support: <strong className="text-slate-200">${report.supportResistance.support}</strong></span>
                 <span>•</span>
@@ -104,7 +117,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
               className="flex items-center space-x-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-xs font-mono transition-all"
             >
               <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-              <span>How It Works Guide</span>
+              <span>Guide</span>
             </button>
 
             {/* Composite Score Circle */}
@@ -240,7 +253,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
               </div>
             </div>
 
-            {/* Price Disambiguation Grid: Stock Price vs Option Premium */}
+            {/* Price Disambiguation Grid */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-xs font-mono">
               <div className="bg-black/50 p-2.5 rounded-lg border border-cyan-500/30">
                 <div className="text-cyan-400 text-[10px] font-bold">OPTION PREMIUM</div>
@@ -290,6 +303,30 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 <div className="text-[10px] text-terminal-green mt-0.5">
                   Target: ${report.supportResistance.breakoutTarget}
                 </div>
+              </div>
+            </div>
+
+            {/* 1-CLICK BROKER EXECUTION BUTTONS */}
+            <div className="mt-4 pt-3.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[11px] font-mono text-slate-400 flex items-center space-x-1.5">
+                <Zap className="w-3.5 h-3.5 text-terminal-green" />
+                <span>1-Click Broker Execution:</span>
+              </span>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {BROKERS.map((broker) => (
+                  <a
+                    key={broker.id}
+                    href={broker.getTradeUrl(report.ticker, report.recommendedStrategy)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-black/50 hover:bg-black/80 border border-white/10 hover:border-cyan-400/50 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center space-x-1.5 transition-all text-slate-200 hover:text-white"
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: broker.color }} />
+                    <span className="font-semibold">{broker.name}</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400" />
+                  </a>
+                ))}
               </div>
             </div>
           </div>

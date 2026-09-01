@@ -14,32 +14,124 @@
   --terminal-amber: #ffb000;
   --terminal-purple: #a855f7;
   --terminal-red: #ff3366;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+}
+
+/* Light Theme Variables */
+html.light-theme {
+  --bg-primary: #f1f5f9;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --border-color: rgba(15, 23, 42, 0.12);
+  --border-active: rgba(2, 132, 199, 0.6);
+  --terminal-green: #16a34a;
+  --terminal-cyan: #0284c7;
+  --terminal-amber: #d97706;
+  --terminal-purple: #9333ea;
+  --terminal-red: #dc2626;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+}
+
+html.light-theme body {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+html.light-theme .bg-\[\#06090e\] {
+  background-color: #f1f5f9 !important;
+}
+
+html.light-theme .bg-\[\#080d1a\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light-theme .bg-surface-300 {
+  background-color: #ffffff !important;
+}
+
+html.light-theme .bg-surface-200 {
+  background-color: #f8fafc !important;
+}
+
+html.light-theme .bg-surface-100 {
+  background-color: #f1f5f9 !important;
+}
+
+html.light-theme .text-slate-100,
+html.light-theme .text-white {
+  color: #0f172a !important;
+}
+
+html.light-theme .text-slate-300,
+html.light-theme .text-slate-400 {
+  color: #334155 !important;
+}
+
+html.light-theme .text-slate-500 {
+  color: #64748b !important;
+}
+
+html.light-theme .border-white\/10,
+html.light-theme .border-white\/5 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light-theme .bg-black\/40,
+html.light-theme .bg-black\/50,
+html.light-theme .bg-black\/60 {
+  background-color: rgba(241, 245, 249, 0.8) !important;
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+
+/* Terminal Theme Variables */
+html.terminal-theme {
+  --bg-primary: #040804;
+  --bg-secondary: #071007;
+  --bg-card: #0b180b;
+  --bg-card-hover: #0f220f;
+  --border-color: rgba(0, 255, 102, 0.2);
+  --border-active: rgba(0, 255, 102, 0.6);
+  --terminal-green: #00ff66;
+  --terminal-cyan: #00ffcc;
+  --terminal-amber: #ffcc00;
+  --text-main: #c0ffc0;
+  --text-muted: #60a060;
+}
+
+html.terminal-theme body {
+  background-color: #040804;
+  color: #c0ffc0;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 body {
   background-color: var(--bg-primary);
-  color: #e2e8f0;
+  color: var(--text-main);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
 }
 
-/* Custom Bloomberg-style sleek scrollbars */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #080c14;
+  background: var(--bg-primary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #334155;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #475569;
 }
 
 /* Glassmorphic panels */
@@ -47,31 +139,15 @@ body {
   background: rgba(15, 22, 38, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-color);
 }
 
-.glass-panel-glow {
-  background: rgba(15, 22, 38, 0.85);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 240, 255, 0.25);
-  box-shadow: 0 0 20px -5px rgba(0, 240, 255, 0.15);
+/* Monospace number figures for alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-.glass-panel-amber-glow {
-  background: rgba(15, 22, 38, 0.85);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 176, 0, 0.25);
-  box-shadow: 0 0 20px -5px rgba(255, 176, 0, 0.15);
-}
-
-.glass-panel-green-glow {
-  background: rgba(15, 22, 38, 0.85);
-  backdrop-filter: blur(14px);
-  border: 1px solid rgba(0, 255, 102, 0.25);
-  box-shadow: 0 0 20px -5px rgba(0, 255, 102, 0.15);
-}
-
-/* Terminal Pulse & Animations */
+/* Animations */
 @keyframes live-pulse {
   0% { transform: scale(0.95); opacity: 0.8; }
   50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
@@ -82,12 +158,6 @@ body {
   animation: live-pulse 2s infinite ease-in-out;
 }
 
-/* Monospace number figures for alignment */
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
-
-/* Price Flash Animations */
 @keyframes flash-green {
   0% { background-color: rgba(0, 255, 102, 0.35); }
   100% { background-color: transparent; }

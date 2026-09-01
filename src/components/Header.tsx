@@ -13,9 +13,15 @@ import {
   ShieldCheck,
   Zap,
   Globe,
-  BookOpen
+  BookOpen,
+  Star,
+  Sun,
+  Moon,
+  Terminal as TerminalIcon
 } from 'lucide-react';
 import { MarketMacroStats } from '@/lib/data/liveMarketSimulator';
+import { useTheme, AppTheme } from '@/context/ThemeContext';
+import { useWatchlist } from '@/context/WatchlistContext';
 
 interface HeaderProps {
   macroStats: MarketMacroStats;
@@ -23,6 +29,7 @@ interface HeaderProps {
   onSectorSelect: (id: string) => void;
   onOpenBacktester: () => void;
   onOpenFieldGuide: () => void;
+  onOpenWatchlist: () => void;
   isSimulatedLive: boolean;
   onToggleSimulatedLive: () => void;
   audioEnabled: boolean;
@@ -36,12 +43,24 @@ export const Header: React.FC<HeaderProps> = ({
   onSectorSelect,
   onOpenBacktester,
   onOpenFieldGuide,
+  onOpenWatchlist,
   isSimulatedLive,
   onToggleSimulatedLive,
   audioEnabled,
   onToggleAudio,
   onTriggerNewsFlash,
 }) => {
+  const { theme, setTheme } = useTheme();
+  const { watchlist } = useWatchlist();
+
+  const getThemeIcon = () => {
+    switch (theme) {
+      case 'light': return <Sun className="w-3.5 h-3.5 text-amber-500" />;
+      case 'terminal': return <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />;
+      default: return <Moon className="w-3.5 h-3.5 text-cyan-400" />;
+    }
+  };
+
   return (
     <header className="border-b border-white/10 bg-[#080d1a]/90 backdrop-blur-md sticky top-0 z-40">
       {/* Upper Terminal Bar */}
@@ -119,23 +138,45 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Global Controls & Actions */}
         <div className="flex items-center space-x-2 text-xs">
+          {/* Watchlist Trigger Button */}
+          <button
+            onClick={onOpenWatchlist}
+            className="flex items-center space-x-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1.5 rounded-lg transition-all text-xs font-mono"
+          >
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+            <span className="hidden sm:inline">Watchlist</span>
+            <span className="bg-amber-500/30 text-amber-200 text-[10px] font-bold px-1.5 py-0.2 rounded">
+              {watchlist.length}
+            </span>
+          </button>
+
+          {/* Theme Switcher Toggle */}
+          <div className="flex items-center bg-black/40 border border-white/10 rounded-lg p-0.5">
+            {(['dark', 'light', 'terminal'] as AppTheme[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTheme(t)}
+                title={`Switch to ${t} mode`}
+                className={`p-1.5 rounded-md transition-all ${
+                  theme === t
+                    ? 'bg-cyan-500/20 text-cyan-300 font-bold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t === 'dark' && <Moon className="w-3.5 h-3.5" />}
+                {t === 'light' && <Sun className="w-3.5 h-3.5 text-amber-400" />}
+                {t === 'terminal' && <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />}
+              </button>
+            ))}
+          </div>
+
           {/* Interactive Guide / Academy Trigger */}
           <button
             onClick={onOpenFieldGuide}
             className="flex items-center space-x-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-1.5 rounded-lg transition-all text-xs font-mono"
           >
             <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">How It Works Guide</span>
-          </button>
-
-          {/* Inject Breaking Catalyst */}
-          <button
-            onClick={onTriggerNewsFlash}
-            title="Inject simulated breaking news event"
-            className="flex items-center space-x-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1.5 rounded-lg transition-all text-xs font-mono"
-          >
-            <Zap className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Inject Flash</span>
+            <span className="hidden sm:inline">Guide</span>
           </button>
 
           {/* Quantitative Backtester Workbench Trigger */}
@@ -144,21 +185,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center space-x-1.5 bg-gradient-to-r from-purple-900/60 to-indigo-900/60 hover:from-purple-800/80 hover:to-indigo-800/80 text-purple-200 border border-purple-500/40 px-3 py-1.5 rounded-lg transition-all font-mono font-medium shadow-glow-purple"
           >
             <Activity className="w-3.5 h-3.5 text-purple-400" />
-            <span>Backtest Lab</span>
-          </button>
-
-          {/* Live Feed Toggle */}
-          <button
-            onClick={onToggleSimulatedLive}
-            title="Toggle Streaming Mode"
-            className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border font-mono transition-all ${
-              isSimulatedLive 
-                ? 'bg-emerald-950/50 border-emerald-500/40 text-emerald-300'
-                : 'bg-slate-800 border-slate-700 text-slate-400'
-            }`}
-          >
-            <Radio className={`w-3.5 h-3.5 ${isSimulatedLive ? 'text-emerald-400 animate-pulse' : ''}`} />
-            <span className="hidden md:inline">{isSimulatedLive ? 'Stream ON' : 'Stream PAUSED'}</span>
+            <span className="hidden sm:inline">Backtest Lab</span>
           </button>
 
           {/* Sound Toggle */}
