@@ -1,0 +1,197 @@
+import { CatalystCategory } from '../quant/backtester';
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  sourceType: 'SEC_FILING' | 'FDA_GOV' | 'CONGRESS_DISCLOSURE' | 'FINANCIAL_WIRE' | 'TECH_PRESS' | 'DEFENSE_DOD';
+  timestamp: string;
+  timeAgo: string;
+  sectorId: string;
+  relatedTickers: string[];
+  sentimentScore: number; // -1.0 to 1.0
+  sentimentLabel: 'VERY_BULLISH' | 'BULLISH' | 'NEUTRAL' | 'BEARISH' | 'VERY_BEARISH';
+  urgency: 'EXTREME' | 'HIGH' | 'MEDIUM' | 'LOW';
+  marketImpactMultiplier: number; // e.g. 2.4x
+  catalystCategory: CatalystCategory;
+  suggestedAction: string;
+  historicalWinRate: number; // e.g. 84%
+}
+
+export const INITIAL_NEWS_FEED: NewsItem[] = [
+  {
+    id: 'news-1',
+    title: 'NVIDIA Receives Export Clearance for Next-Gen Blackwell Architecture to Sovereign Cloud Alliances',
+    summary: 'The U.S. Bureau of Industry and Security (BIS) has issued an updated export compliance framework allowing accelerated deployment of Blackwell B200 accelerators across certified tier-1 sovereign data centers in EMEA and APAC.',
+    source: 'Bloomberg Terminal',
+    sourceType: 'FINANCIAL_WIRE',
+    timestamp: '2026-08-31T22:45:00Z',
+    timeAgo: '10m ago',
+    sectorId: 'tech-ai',
+    relatedTickers: ['NVDA', 'TSM', 'AVGO'],
+    sentimentScore: 0.88,
+    sentimentLabel: 'VERY_BULLISH',
+    urgency: 'HIGH',
+    marketImpactMultiplier: 1.9,
+    catalystCategory: 'CHIP_SUBSIDY_OR_RESTRICTION',
+    suggestedAction: 'Deploy NVDA $140/$155 Bull Call Spread (45 DTE)',
+    historicalWinRate: 85,
+  },
+  {
+    id: 'news-2',
+    title: 'IonQ Announces Breakthrough in Multi-Core Quantum Optical Interconnects; 64-Qubit Scalability Confirmed',
+    summary: 'IonQ research team successfully demonstrates photonic ion-trap interconnects linking multiple quantum processing units (QPUs) with sub-microsecond optical entangling fidelity, paving the way for commercial fault-tolerant cluster deployment.',
+    source: 'Quantum Computing Report & PR Newswire',
+    sourceType: 'TECH_PRESS',
+    timestamp: '2026-08-31T22:30:00Z',
+    timeAgo: '25m ago',
+    sectorId: 'quantum',
+    relatedTickers: ['IONQ', 'RGTI', 'QBTS'],
+    sentimentScore: 0.94,
+    sentimentLabel: 'VERY_BULLISH',
+    urgency: 'EXTREME',
+    marketImpactMultiplier: 2.7,
+    catalystCategory: 'QUANTUM_BENCHMARK',
+    suggestedAction: 'IONQ $25.00 Long Call (60 DTE) - High Gamma Play',
+    historicalWinRate: 82,
+  },
+  {
+    id: 'news-3',
+    title: 'FDA Advisory Committee Votes 14-1 in Favor of Expanded Approval for Eli Lilly Retatrutide',
+    summary: 'The FDA Endocrinologic and Metabolic Drugs Advisory Committee unanimously endorsed the safety and cardiovascular clinical endpoints for triple-agonist Retatrutide, setting up expedited final agency clearance ahead of schedule.',
+    source: 'FDA.gov Regulatory Wire',
+    sourceType: 'FDA_GOV',
+    timestamp: '2026-08-31T22:15:00Z',
+    timeAgo: '40m ago',
+    sectorId: 'biotech-medical',
+    relatedTickers: ['LLY', 'NVO', 'VRTX'],
+    sentimentScore: 0.91,
+    sentimentLabel: 'VERY_BULLISH',
+    urgency: 'HIGH',
+    marketImpactMultiplier: 2.1,
+    catalystCategory: 'FDA_APPROVAL',
+    suggestedAction: 'LLY $950/$1000 Bull Call Vertical (30 DTE)',
+    historicalWinRate: 88,
+  },
+  {
+    id: 'news-4',
+    title: 'House Financial Disclosures Reveal Major Congressional Calls Accumulation in Palantir Technologies',
+    summary: 'Periodic Transaction Reports (PTR) filed under the STOCK Act show prominent members of the House Armed Services Committee acquired over $2.5M in out-of-the-money Palantir LEAPS calls ahead of upcoming CJADC2 defense budget allocation votes.',
+    source: 'Capitol Trades / SEC EDGAR',
+    sourceType: 'CONGRESS_DISCLOSURE',
+    timestamp: '2026-08-31T21:50:00Z',
+    timeAgo: '1h ago',
+    sectorId: 'politician-macro',
+    relatedTickers: ['PLTR', 'LMT', 'RTX'],
+    sentimentScore: 0.86,
+    sentimentLabel: 'VERY_BULLISH',
+    urgency: 'HIGH',
+    marketImpactMultiplier: 1.8,
+    catalystCategory: 'CONGRESSIONAL_INSIDER_BUY',
+    suggestedAction: 'Follow Congressional flow: PLTR $45.00 Call (60 DTE)',
+    historicalWinRate: 79,
+  },
+  {
+    id: 'news-5',
+    title: 'Pentagon Finalizes $1.4B Multi-Domain Autonomous Command & Control Architecture Award',
+    summary: 'The Department of Defense announced the formal contract award for Project Overmatch multi-domain integration, naming Palantir Technologies and Lockheed Martin as key prime contractors for edge AI software and hardened sensor links.',
+    source: 'Defense.gov Press Operations',
+    sourceType: 'DEFENSE_DOD',
+    timestamp: '2026-08-31T21:10:00Z',
+    timeAgo: '1.5h ago',
+    sectorId: 'politician-macro',
+    relatedTickers: ['PLTR', 'LMT'],
+    sentimentScore: 0.89,
+    sentimentLabel: 'VERY_BULLISH',
+    urgency: 'HIGH',
+    marketImpactMultiplier: 2.0,
+    catalystCategory: 'DEFENSE_CONTRACT_AWARD',
+    suggestedAction: 'PLTR / LMT Equity Accumulation + OTM Calls',
+    historicalWinRate: 84,
+  },
+  {
+    id: 'news-6',
+    title: 'Rigetti Computing Deploys 84-Qubit Quantum Processor to National Labs under NQCO Directive',
+    summary: 'Rigetti Computing has completed on-premises installation of its modular 84-qubit system at Oak Ridge National Laboratory under the National Quantum Initiative Act, accelerating hybrid HPC-quantum simulation pipelines.',
+    source: 'Department of Energy Science Wire',
+    sourceType: 'TECH_PRESS',
+    timestamp: '2026-08-31T20:30:00Z',
+    timeAgo: '2h ago',
+    sectorId: 'quantum',
+    relatedTickers: ['RGTI', 'IBM'],
+    sentimentScore: 0.79,
+    sentimentLabel: 'BULLISH',
+    urgency: 'MEDIUM',
+    marketImpactMultiplier: 1.6,
+    catalystCategory: 'QUANTUM_BENCHMARK',
+    suggestedAction: 'RGTI $3.50 Call (45 DTE) Speculative Play',
+    historicalWinRate: 75,
+  },
+  {
+    id: 'news-7',
+    title: 'Vertex Pharmaceuticals Reports Positive Phase 3 Pain Readout with Zero Opioid-Class Adverse Events',
+    summary: 'Vertex Suzetrigine (VX-548) achieved all primary efficacy endpoints in moderate-to-severe acute pain with statistically significant pain score reductions versus placebo and active reference arms.',
+    source: 'BioSpace Clinical Trials Daily',
+    sourceType: 'FDA_GOV',
+    timestamp: '2026-08-31T19:40:00Z',
+    timeAgo: '3h ago',
+    sectorId: 'biotech-medical',
+    relatedTickers: ['VRTX', 'CRSP'],
+    sentimentScore: 0.92,
+    sentimentLabel: 'VERY_BULLISH',
+    urgency: 'HIGH',
+    marketImpactMultiplier: 2.3,
+    catalystCategory: 'FDA_APPROVAL',
+    suggestedAction: 'VRTX $490/$510 Bull Call Spread (30 DTE)',
+    historicalWinRate: 86,
+  }
+];
+
+export const BREAKING_NEWS_TEMPLATES: Partial<NewsItem>[] = [
+  {
+    title: 'Federal Reserve Notes Stable Disinflation with Resilient Real GDP in Beige Book Summary',
+    summary: 'Macro policy indicators point toward continued easing with low terminal risk, driving positive beta expansion across speculative tech and small-cap high-growth assets.',
+    source: 'Federal Reserve Board',
+    sourceType: 'FINANCIAL_WIRE',
+    sectorId: 'tech-ai',
+    relatedTickers: ['QQQ', 'MSFT', 'NVDA'],
+    sentimentScore: 0.74,
+    sentimentLabel: 'BULLISH',
+    urgency: 'MEDIUM',
+    marketImpactMultiplier: 1.4,
+    catalystCategory: 'FED_RATE_SURPRISE',
+    suggestedAction: 'Deploy QQQ Bull Call Spreads',
+    historicalWinRate: 78,
+  },
+  {
+    title: 'CRISPR Therapeutics Receives Expedited Review Designation for In Vivo Gene Disruption Candidate',
+    summary: 'FDA grants Fast Track status to CTX310 targeting ANGPTL3 for dyslipidemia and severe cardiovascular disease cohorts.',
+    source: 'SEC 8-K Filing',
+    sourceType: 'SEC_FILING',
+    sectorId: 'biotech-medical',
+    relatedTickers: ['CRSP', 'LLY'],
+    sentimentScore: 0.85,
+    sentimentLabel: 'BULLISH',
+    urgency: 'HIGH',
+    marketImpactMultiplier: 2.0,
+    catalystCategory: 'FDA_APPROVAL',
+    suggestedAction: 'CRSP $60.00 Call (45 DTE)',
+    historicalWinRate: 83,
+  },
+  {
+    title: 'D-Wave Quantum Announces Multi-Year Commercial Optimization Contract with Tier-1 Logistics Giant',
+    summary: 'Enterprise deployment of Advantage quantum annealing system achieves 28% reduction in cross-border logistics routing latency compared to classic supercomputers.',
+    source: 'Reuters Financial',
+    sourceType: 'FINANCIAL_WIRE',
+    sectorId: 'quantum',
+    relatedTickers: ['QBTS', 'IONQ'],
+    sentimentScore: 0.82,
+    sentimentLabel: 'BULLISH',
+    urgency: 'HIGH',
+    marketImpactMultiplier: 2.2,
+    catalystCategory: 'QUANTUM_BENCHMARK',
+    suggestedAction: 'QBTS $3.00 Long Call (30 DTE)',
+    historicalWinRate: 76,
+  }
+];

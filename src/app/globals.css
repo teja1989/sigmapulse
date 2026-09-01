@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #06090e;
+  --bg-secondary: #0b101b;
+  --bg-card: #0f1626;
+  --bg-card-hover: #141e33;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(0, 240, 255, 0.4);
+  --terminal-green: #00ff66;
+  --terminal-cyan: #00f0ff;
+  --terminal-amber: #ffb000;
+  --terminal-purple: #a855f7;
+  --terminal-red: #ff3366;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Bloomberg-style sleek scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080c14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Glassmorphic panels */
+.glass-panel {
+  background: rgba(15, 22, 38, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-panel-glow {
+  background: rgba(15, 22, 38, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  box-shadow: 0 0 20px -5px rgba(0, 240, 255, 0.15);
+}
+
+.glass-panel-amber-glow {
+  background: rgba(15, 22, 38, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 176, 0, 0.25);
+  box-shadow: 0 0 20px -5px rgba(255, 176, 0, 0.15);
+}
+
+.glass-panel-green-glow {
+  background: rgba(15, 22, 38, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 255, 102, 0.25);
+  box-shadow: 0 0 20px -5px rgba(0, 255, 102, 0.15);
+}
+
+/* Terminal Pulse & Animations */
+@keyframes live-pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.animate-live-dot {
+  animation: live-pulse 2s infinite ease-in-out;
+}
+
+/* Monospace number figures for alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Price Flash Animations */
+@keyframes flash-green {
+  0% { background-color: rgba(0, 255, 102, 0.35); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flash-red {
+  0% { background-color: rgba(255, 51, 102, 0.35); }
+  100% { background-color: transparent; }
+}
+
+.flash-up {
+  animation: flash-green 1.2s ease-out;
+}
+
+.flash-down {
+  animation: flash-red 1.2s ease-out;
+}
