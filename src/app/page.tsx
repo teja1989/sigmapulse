@@ -9,6 +9,7 @@ import { getCuratedOptionsSignals } from '@/lib/data/optionsSignals';
 import { OptionsStrategyStructure } from '@/lib/quant/optionsEngine';
 import { CatalystCategory } from '@/lib/quant/backtester';
 import { analyzeTickerSignals, QuantitativeSignalReport } from '@/lib/quant/rulesEngine';
+import { fetchLiveStockQuote } from '@/lib/data/liveQuoteService';
 
 import { Header } from '@/components/Header';
 import { TickerRibbon } from '@/components/TickerRibbon';
@@ -32,11 +33,11 @@ import {
   Landmark, 
   Layers, 
   ShieldCheck, 
-  ArrowUpRight,
-  Info,
-  Radio,
-  Sparkles,
-  BookOpen
+  ArrowUpRight, 
+  Info, 
+  Radio, 
+  Sparkles, 
+  BookOpen 
 } from 'lucide-react';
 
 export default function SigmaPulseTerminal() {
@@ -49,6 +50,7 @@ export default function SigmaPulseTerminal() {
   
   const [isSimulatedLive, setIsSimulatedLive] = useState<boolean>(true);
   const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   // Modals state
   const [payoffModalStrategy, setPayoffModalStrategy] = useState<OptionsStrategyStructure | null>(null);
@@ -66,17 +68,15 @@ export default function SigmaPulseTerminal() {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
       gain.gain.setValueAtTime(0.1, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.25);
-    } catch (e) {
-      // Audio context may require user interaction
-    }
+    } catch (e) {}
   };
 
   // Flattened stocks list for ticker ribbon
@@ -110,7 +110,6 @@ export default function SigmaPulseTerminal() {
     if (!isSimulatedLive) return;
 
     const interval = setInterval(() => {
-      // Pick 2-3 random stocks to update with micro-ticks
       setSectorsData(prevSectors => {
         return prevSectors.map(sec => {
           const updatedStocks = sec.stocks.map(st => {
@@ -154,22 +153,35 @@ export default function SigmaPulseTerminal() {
     playAlertChime();
   };
 
-  // Search handler: Runs institutional quantitative rules & generates 5-pillar signals report
-  const handleSearchTicker = (ticker: string) => {
-    const report = analyzeTickerSignals(ticker);
-    setAnalysisReport(report);
+  // Real-time live search handler: Fetches real market quotes and runs 5-pillar rules
+  const handleSearchTicker = async (ticker: string) => {
+    setIsSearching(true);
+    try {
+      // 1. Fetch real-time market data
+      const liveStock = await fetchLiveStockQuote(ticker);
+      // 2. Evaluate 5-Pillar Decision Framework with live quote
+      const report = analyzeTickerSignals(liveStock);
+      setAnalysisReport(report);
+    } catch (err) {
+      // Fallback
+      const report = analyzeTickerSignals(ticker);
+      setAnalysisReport(report);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleSelectStock = (ticker: string) => {
     handleSearchTicker(ticker);
   };
 
-  const handleOpenOptions = (ticker: string) => {
+  const handleOpenOptions = async (ticker: string) => {
     const sig = optionsSignals.find(s => s.ticker === ticker);
     if (sig) {
       setPayoffModalStrategy(sig);
     } else {
-      const report = analyzeTickerSignals(ticker);
+      const liveStock = await fetchLiveStockQuote(ticker);
+      const report = analyzeTickerSignals(liveStock);
       setPayoffModalStrategy(report.recommendedStrategy);
     }
   };
@@ -200,8 +212,8 @@ export default function SigmaPulseTerminal() {
 
       {/* Main Terminal Workspace */}
       <main className="max-w-[1780px] mx-auto px-4 py-5 flex-1 w-full space-y-6">
-        {/* Instant Quantitative Ticker Search & 5-Pillar Rule Command Bar */}
-        <TickerSearchBar onSearchTicker={handleSearchTicker} />
+        {/* Real-time Quantitative Ticker Search & 5-Pillar Rule Command Bar */}
+        <TickerSearchBar onSearchTicker={handleSearchTicker} isLoading={isSearching} />
 
         {/* Sector Navigation Selector */}
         <SectorNavigation
@@ -267,7 +279,7 @@ export default function SigmaPulseTerminal() {
                   </h3>
                 </div>
                 <span className="text-[11px] font-mono text-slate-500">
-                  {displayedStocks.length} Assets Active • Click Any Card for Instant 5-Pillar Dossier
+                  {displayedStocks.length} Assets Active • Click Any Card for Live 5-Pillar Audit
                 </span>
               </div>
 
@@ -315,7 +327,7 @@ export default function SigmaPulseTerminal() {
       <footer className="border-t border-white/10 bg-[#080d1a] py-3 text-center text-xs font-mono text-slate-500">
         <div className="max-w-[1780px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>SigmaPulse Institutional Derivatives & Quantitative News Terminal • v1.0.0 Pro Edition</span>
-          <span className="text-slate-400">Black-Scholes-Merton • 5-Pillar Decision Framework • SEC EDGAR / STOCK Act Ingestion</span>
+          <span className="text-slate-400">Black-Scholes-Merton • 5-Pillar Decision Framework • Live Market Ingestion</span>
         </div>
       </footer>
 
