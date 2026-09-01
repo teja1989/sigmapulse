@@ -10,48 +10,41 @@
 
 ---
 
-## ⚡ Core Quantitative Pillars
+## 🔍 Instant Ticker Search & Quantitative Rules Engine
 
-### 1. Black-Scholes-Merton & Analytical Greeks Engine
-- **High-Precision Probability**: Hart / Abramowitz-Stegun rational approximation of the standard normal CDF ($\Phi(x)$) and PDF ($\phi(x)$).
-- **First & Second Order Greeks**:
-  - **Delta ($\Delta$)**: Directional rate of change $\partial V / \partial S$
-  - **Gamma ($\Gamma$)**: Curvature and acceleration $\partial^2 V / \partial S^2$
-  - **Theta ($\Theta$)**: Daily time decay $\partial V / \partial t$
-  - **Vega ($\nu$)**: Sensitivity to 1% shift in implied volatility $\partial V / \partial \sigma$
-  - **Rho ($\rho$)**: Interest rate sensitivity $\partial V / \partial r$
-- **Implied Volatility Solver**: Continuous Newton-Raphson method with bisection fallback for exact IV and 52-week Implied Volatility Rank (IVR).
+Instead of simply displaying standard market quotes, searching for any ticker in SigmaPulse immediately executes a **Multi-Factor Quantitative Rules Audit**:
 
-### 2. Multi-Leg Derivatives Alpha Structuring
-- Automated risk-defined strategy construction:
-  - **Bull Call Vertical Spreads**: Mitigates IV crush by selling upper strikes.
-  - **Long OTM Calls**: High gamma expansion for structural momentum breakouts.
-  - **Iron Condors**: 4-leg delta-neutral theta harvesting within containment corridors.
-  - **Long Straddles**: Delta-neutral gamma traps for binary regulatory/clinical catalysts.
-- Dynamic interactive $P\&L$ payoff curves with real-time scenario sliders (Spot Price, Days to Expiration, IV Skew).
-
-### 3. Event-Driven Quantitative Backtesting Matrix
-- Ingests 10-year historical precedent distributions across structural catalysts:
-  - **FDA Phase 3 / PDUFA Approvals**
-  - **Quantum Algorithmic & Qubit Scalability Benchmarks**
-  - **CHIPS Act Grants & Sovereign AI Export Authorizations**
-  - **Congressional STOCK Act Insider Purchases**
-  - **DoD / NATO Major Defense Awards**
-- Real-time computation of 1-Day, 5-Day, and 30-Day win rates, median returns, Sharpe ratios, and max adverse excursions (drawdowns).
-
-### 4. Congressional STOCK Act & Policy Radar
-- Real-time monitoring of House and Senate committee insider filings (Pelosi, Tuberville, Crenshaw, McCaul, Ro Khanna).
-- Calculates Committee Conflict of Interest indices, disclosure lags, and provides 1-click options copy-trading setups.
+1. **Price Structure & Breakout Rules**: Tests support/resistance channel proximity and volume expansion.
+2. **14-Period RSI Momentum Velocity**: Classifies accumulation vs exhaustion regimes.
+3. **Implied Volatility Rank (IVR)**: Determines whether option premiums are statistically cheap ($\le 35\%$) or expensive ($\ge 70\%$).
+4. **IV vs Historical Volatility Spread**: Detects derivatives market pricing of upcoming variance expansion.
+5. **Event Precedent Backtest Match**: Verifies historical win-rates and median returns for identical catalysts.
+6. **Congressional STOCK Act Insider Flow**: Flags active committee assignments with legislative conflicts of interest.
+7. **Actionable Options Structure Generation**: Outputs exact strikes, expiration DTE, Greeks ($\Delta, \Gamma, \Theta, \nu$), net debit/credit, and dynamic $P\&L$ payoff curves.
 
 ---
 
-## 🛠️ Dynamic Sector Intelligence Hubs
+## ⚡ Core Quantitative Pillars
 
-1. **Technology & AI Hardware**: `NVDA`, `MSFT`, `AMD`, `TSM`, `AVGO`
-2. **Quantum Computing & Cryptography**: `IONQ`, `RGTI`, `QBTS`, `IBM`
-3. **Biotech & Clinical Catalysts**: `LLY`, `VRTX`, `CRSP`, `NVO`
-4. **Congressional & Politician Trades**: `PLTR`, `LMT`, `RTX`, `NVDA`, `LLY`
-5. **Cross-Asset Aggregated View**: Multi-sector macro matrix.
+### 1. Black-Scholes-Merton & Analytical Greeks Engine
+- **High-Precision Normal CDF/PDF**: Hart rational polynomial approximation ($\Phi(x)$ and $\phi(x)$).
+- **First & Second Order Greeks**: Delta ($\Delta$), Gamma ($\Gamma$), Theta ($\Theta$), Vega ($\nu$), Rho ($\rho$).
+- **Newton-Raphson Solver**: Continuous implied volatility and 52-week IV Rank (IVR).
+
+### 2. Multi-Leg Derivatives Alpha Structuring
+- **Bull Call Spreads**: Debit spreads mitigating IV crush with defined capped risk.
+- **Long OTM Calls**: High gamma expansion for structural momentum breakouts.
+- **Iron Condors**: 4-leg delta-neutral theta harvesting in rangebound corridors.
+- **Long Straddles**: Delta-neutral gamma traps for binary regulatory/clinical catalysts.
+
+### 3. Event-Driven Quantitative Backtesting Matrix
+- Ingests 10-year historical precedent distributions for FDA approvals, Quantum milestones, CHIPS Act grants, STOCK Act disclosures, and DoD contracts.
+
+---
+
+## 📚 Technical Documentation
+
+- **[System Architecture & Data Flow](file:///Users/tejatatini/Documents/git/stockgenie/docs/ARCHITECTURE_AND_DATA_FLOW.md)**: Deep dive on data ingestion, real-time streaming mechanics, rules engine algorithms, and mathematical formulations.
 
 ---
 
@@ -77,31 +70,7 @@ Open [http://localhost:3000](http://localhost:3000) (or `http://localhost:3001`)
 
 The repository includes an automated GitHub Actions CI/CD workflow (`.github/workflows/deploy-gcp.yml`) targeting Google Cloud project **`quantum-pulsar`**.
 
-### Setting up GCP Authentication:
-1. Create a Service Account in GCP project `quantum-pulsar`:
-   ```bash
-   gcloud iam service-accounts create github-actions-deployer \
-     --description="GitHub Actions Cloud Run Deployer" \
-     --display-name="GitHub Deployer"
-   ```
-2. Grant required roles:
-   ```bash
-   gcloud projects add-iam-policy-binding quantum-pulsar \
-     --member="serviceAccount:github-actions-deployer@quantum-pulsar.iam.gserviceaccount.com" \
-     --role="roles/run.admin"
-
-   gcloud projects add-iam-policy-binding quantum-pulsar \
-     --member="serviceAccount:github-actions-deployer@quantum-pulsar.iam.gserviceaccount.com" \
-     --role="roles/artifactregistry.admin"
-
-   gcloud projects add-iam-policy-binding quantum-pulsar \
-     --member="serviceAccount:github-actions-deployer@quantum-pulsar.iam.gserviceaccount.com" \
-     --role="roles/iam.serviceAccountUser"
-   ```
-3. Generate a Service Account JSON Key and add it to GitHub repository Secrets as **`GCP_SA_KEY`**:
-   - Go to `https://github.com/teja1989/sigmapulse/settings/secrets/actions`
-   - Add Secret: `GCP_SA_KEY` = `<Contents of Service Account JSON>`
-4. Push to `main` branch to automatically trigger the build and deployment to Google Cloud Run!
+Pushing to `main` automatically builds the multi-stage Docker container, pushes to **Google Artifact Registry**, and deploys to **Google Cloud Run**.
 
 ---
 

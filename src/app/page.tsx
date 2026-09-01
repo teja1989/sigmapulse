@@ -8,9 +8,11 @@ import { POLITICIAN_TRADES } from '@/lib/data/politicianTracker';
 import { getCuratedOptionsSignals } from '@/lib/data/optionsSignals';
 import { OptionsStrategyStructure } from '@/lib/quant/optionsEngine';
 import { CatalystCategory } from '@/lib/quant/backtester';
+import { analyzeTickerSignals, QuantitativeSignalReport } from '@/lib/quant/rulesEngine';
 
 import { Header } from '@/components/Header';
 import { TickerRibbon } from '@/components/TickerRibbon';
+import { TickerSearchBar } from '@/components/TickerSearchBar';
 import { SectorNavigation } from '@/components/SectorNavigation';
 import { StockAssetCard } from '@/components/StockAssetCard';
 import { OptionsSignalsMatrix } from '@/components/OptionsSignalsMatrix';
@@ -19,6 +21,7 @@ import { PoliticianTradeTracker } from '@/components/PoliticianTradeTracker';
 import { OptionsPayoffModal } from '@/components/OptionsPayoffModal';
 import { BacktestWorkbenchModal } from '@/components/BacktestWorkbenchModal';
 import { StockDetailModal } from '@/components/StockDetailModal';
+import { TickerAnalysisModal } from '@/components/TickerAnalysisModal';
 
 import { 
   Zap, 
@@ -30,7 +33,8 @@ import {
   ShieldCheck, 
   ArrowUpRight,
   Info,
-  Radio
+  Radio,
+  Sparkles
 } from 'lucide-react';
 
 export default function SigmaPulseTerminal() {
@@ -49,6 +53,7 @@ export default function SigmaPulseTerminal() {
   const [isBacktestOpen, setIsBacktestOpen] = useState<boolean>(false);
   const [backtestInitialCategory, setBacktestInitialCategory] = useState<CatalystCategory>('FDA_APPROVAL');
   const [detailModalStock, setDetailModalStock] = useState<StockAsset | null>(null);
+  const [analysisReport, setAnalysisReport] = useState<QuantitativeSignalReport | null>(null);
 
   // Audio chime
   const playAlertChime = () => {
@@ -146,11 +151,15 @@ export default function SigmaPulseTerminal() {
     playAlertChime();
   };
 
+  // Search handler: Runs institutional quantitative rules & generates signals report
+  const handleSearchTicker = (ticker: string) => {
+    const report = analyzeTickerSignals(ticker);
+    setAnalysisReport(report);
+  };
+
   const handleSelectStock = (ticker: string) => {
-    const stock = allStocks.find(s => s.ticker === ticker);
-    if (stock) {
-      setDetailModalStock(stock);
-    }
+    // Run rule analysis directly on select
+    handleSearchTicker(ticker);
   };
 
   const handleOpenOptions = (ticker: string) => {
@@ -158,10 +167,8 @@ export default function SigmaPulseTerminal() {
     if (sig) {
       setPayoffModalStrategy(sig);
     } else {
-      const st = allStocks.find(s => s.ticker === ticker);
-      if (st) {
-        setDetailModalStock(st);
-      }
+      const report = analyzeTickerSignals(ticker);
+      setPayoffModalStrategy(report.recommendedStrategy);
     }
   };
 
@@ -190,6 +197,9 @@ export default function SigmaPulseTerminal() {
 
       {/* Main Terminal Workspace */}
       <main className="max-w-[1780px] mx-auto px-4 py-5 flex-1 w-full space-y-6">
+        {/* Instant Quantitative Ticker Search & Rule Analysis Command Bar */}
+        <TickerSearchBar onSearchTicker={handleSearchTicker} />
+
         {/* Sector Navigation Selector */}
         <SectorNavigation
           activeSectorId={activeSectorId}
@@ -254,7 +264,7 @@ export default function SigmaPulseTerminal() {
                   </h3>
                 </div>
                 <span className="text-[11px] font-mono text-slate-500">
-                  {displayedStocks.length} Assets Active
+                  {displayedStocks.length} Assets Active • Click Any Card for Instant Rule Dossier
                 </span>
               </div>
 
@@ -302,11 +312,18 @@ export default function SigmaPulseTerminal() {
       <footer className="border-t border-white/10 bg-[#080d1a] py-3 text-center text-xs font-mono text-slate-500">
         <div className="max-w-[1780px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>SigmaPulse Institutional Derivatives & Quantitative News Terminal • v1.0.0 Pro Edition</span>
-          <span className="text-slate-400">Black-Scholes-Merton • Event Precedent Backtesting • SEC EDGAR / STOCK Act Ingestion</span>
+          <span className="text-slate-400">Black-Scholes-Merton • Multi-Factor Rules Engine • SEC EDGAR / STOCK Act Ingestion</span>
         </div>
       </footer>
 
       {/* Modals */}
+      <TickerAnalysisModal
+        report={analysisReport}
+        onClose={() => setAnalysisReport(null)}
+        onOpenPayoffModal={(strat) => setPayoffModalStrategy(strat)}
+        onOpenBacktest={() => setIsBacktestOpen(true)}
+      />
+
       <OptionsPayoffModal
         strategy={payoffModalStrategy}
         onClose={() => setPayoffModalStrategy(null)}
