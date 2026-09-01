@@ -5,15 +5,11 @@ import { StockAsset } from '@/lib/data/sectors';
 import { 
   TrendingUp, 
   TrendingDown, 
-  Flame, 
   Calendar, 
   Sliders, 
-  Activity, 
-  ShieldCheck,
-  Zap,
-  Target,
-  Sparkles,
-  Star
+  Sparkles, 
+  Star,
+  ArrowRight
 } from 'lucide-react';
 import { useWatchlist } from '@/context/WatchlistContext';
 
@@ -48,7 +44,7 @@ export const StockAssetCard: React.FC<StockAssetCardProps> = ({
     .join(' ');
 
   return (
-    <div className="bg-surface-200/90 hover:bg-surface-100/90 border border-white/10 hover:border-cyan-500/50 rounded-xl p-4 transition-all group flex flex-col justify-between shadow-lg hover:shadow-glow-cyan">
+    <div className="bg-surface-200 hover:bg-surface-100 border border-white/10 hover:border-institutional-blue/50 rounded-xl p-4 transition-all duration-150 flex flex-col justify-between shadow-card hover:shadow-card-hover group">
       <div>
         {/* Top Header */}
         <div className="flex items-start justify-between">
@@ -68,26 +64,26 @@ export const StockAssetCard: React.FC<StockAssetCardProps> = ({
               <div className="flex items-center space-x-2">
                 <span 
                   onClick={() => onSelectStock(stock.ticker)}
-                  className="font-mono font-bold text-lg text-white hover:text-cyan-300 cursor-pointer tracking-wide"
+                  className="font-mono font-bold text-lg text-slate-100 hover:text-sky-400 cursor-pointer tracking-wide"
                 >
                   ${stock.ticker}
                 </span>
-                <span className="text-xs font-mono text-slate-400 truncate max-w-[120px]">
+                <span className="text-xs font-sans text-slate-400 truncate max-w-[130px]">
                   {stock.name}
                 </span>
               </div>
-              <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                Vol: <span className="text-slate-300">{stock.volume}</span> • MktCap: <span className="text-slate-300">{stock.marketCap}</span>
+              <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                Vol: <span className="text-slate-300 font-semibold">{stock.volume}</span> • MktCap: <span className="text-slate-300 font-semibold">{stock.marketCap}</span>
               </div>
             </div>
           </div>
 
           {/* Price & Change */}
           <div className="text-right">
-            <div className="font-mono font-bold text-lg text-white tabular-nums">
+            <div className="font-mono font-bold text-lg text-slate-100 tabular-nums">
               ${stock.price.toFixed(2)}
             </div>
-            <div className={`text-xs font-mono font-semibold flex items-center justify-end space-x-0.5 ${isPositive ? 'text-terminal-green' : 'text-terminal-red'}`}>
+            <div className={`text-xs font-mono font-semibold flex items-center justify-end space-x-0.5 ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
               {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
               <span>{isPositive ? '+' : ''}{stock.change.toFixed(2)} ({isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%)</span>
             </div>
@@ -100,7 +96,7 @@ export const StockAssetCard: React.FC<StockAssetCardProps> = ({
             <svg viewBox="0 0 100 35" className="w-full h-full overflow-visible">
               <polyline
                 fill="none"
-                stroke={isPositive ? '#00FF66' : '#FF3366'}
+                stroke={isPositive ? '#10b981' : '#ef4444'}
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -109,16 +105,16 @@ export const StockAssetCard: React.FC<StockAssetCardProps> = ({
             </svg>
           </div>
 
-          <div className="col-span-6 grid grid-cols-2 gap-2 text-[11px] font-mono text-right">
-            <div className="bg-black/30 p-1 rounded border border-white/5">
-              <span className="text-slate-500 block text-[9px]">IV RANK</span>
-              <span className={`font-bold ${stock.ivRank >= 70 ? 'text-purple-400' : 'text-cyan-400'}`}>
+          <div className="col-span-6 grid grid-cols-2 gap-1.5 text-[11px] font-mono text-right">
+            <div className="bg-surface-300 p-1.5 rounded border border-white/5">
+              <span className="text-slate-500 block text-[9px] font-semibold">IV RANK</span>
+              <span className={`font-bold ${stock.ivRank >= 70 ? 'text-purple-400' : 'text-sky-400'}`}>
                 {stock.ivRank}%
               </span>
             </div>
-            <div className="bg-black/30 p-1 rounded border border-white/5">
-              <span className="text-slate-500 block text-[9px]">RSI (14D)</span>
-              <span className="font-bold text-terminal-green">
+            <div className="bg-surface-300 p-1.5 rounded border border-white/5">
+              <span className="text-slate-500 block text-[9px] font-semibold">RSI (14D)</span>
+              <span className="font-bold text-emerald-400">
                 {stock.rsi14}
               </span>
             </div>
@@ -126,10 +122,10 @@ export const StockAssetCard: React.FC<StockAssetCardProps> = ({
         </div>
 
         {/* Catalyst Ribbon */}
-        <div className="bg-cyan-950/20 border border-cyan-500/20 rounded-lg p-2 text-xs flex items-start space-x-2">
-          <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0 mt-0.5" />
+        <div className="bg-surface-300 border border-white/5 rounded-lg p-2 text-xs flex items-start space-x-2">
+          <Calendar className="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5" />
           <div className="font-sans text-[11px] text-slate-300 leading-tight">
-            <strong className="text-white font-mono">{stock.catalystDate}:</strong> {stock.upcomingCatalyst}
+            <strong className="text-slate-100 font-mono">{stock.catalystDate}:</strong> {stock.upcomingCatalyst}
           </div>
         </div>
       </div>
@@ -138,24 +134,25 @@ export const StockAssetCard: React.FC<StockAssetCardProps> = ({
       <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-xs font-mono">
         <button
           onClick={() => onSelectStock(stock.ticker)}
-          className="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 transition-colors text-[11px] font-semibold"
+          className="text-sky-400 hover:text-sky-300 flex items-center space-x-1 transition-colors text-[11px] font-semibold"
         >
-          <Sparkles className="w-3 h-3 text-cyan-400" />
+          <Sparkles className="w-3 h-3 text-sky-400" />
           <span>5-Pillar Audit</span>
+          <ArrowRight className="w-3 h-3 text-sky-400 ml-0.5 group-hover:translate-x-0.5 transition-transform" />
         </button>
 
         <div className="flex items-center space-x-2">
           <button
             onClick={() => onOpenOptions(stock.ticker)}
-            className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2.5 py-1 rounded text-[11px] font-semibold flex items-center space-x-1 transition-all shadow-glow-cyan"
+            className="bg-institutional-blue/15 hover:bg-institutional-blue/25 text-sky-300 border border-institutional-blue/30 px-2.5 py-1 rounded text-[11px] font-semibold flex items-center space-x-1 transition-colors"
           >
-            <Sliders className="w-3 h-3 text-cyan-400" />
+            <Sliders className="w-3 h-3 text-sky-400" />
             <span>Options</span>
           </button>
 
           <button
             onClick={onOpenBacktest}
-            className="bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-600/30 px-2 py-1 rounded text-[11px] transition-all"
+            className="bg-surface-300 hover:bg-surface-100 text-slate-400 hover:text-slate-200 border border-white/10 px-2 py-1 rounded text-[11px] transition-colors"
           >
             Backtest
           </button>

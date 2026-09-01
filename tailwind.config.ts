@@ -9,43 +9,50 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#080B11",
+        background: "#080c14",
         surface: {
-          50: "#1A2234",
-          100: "#141B2D",
-          200: "#0F1424",
-          300: "#0B0F1A",
-          400: "#070A12",
+          50: "#1e293b",
+          100: "#141d2e",
+          200: "#0f1728",
+          300: "#0b111e",
+          400: "#070c16",
+        },
+        institutional: {
+          blue: "#2563eb",
+          sky: "#0284c7",
+          emerald: "#10b981",
+          crimson: "#ef4444",
+          amber: "#f59e0b",
+          indigo: "#6366f1",
+          slate: "#64748b",
         },
         terminal: {
-          green: "#00FF66",
-          cyan: "#00F0FF",
-          amber: "#FFB000",
-          purple: "#A855F7",
-          red: "#FF3366",
-          blue: "#3B82F6",
-          gold: "#FFD700",
+          green: "#10b981",
+          cyan: "#0284c7",
+          amber: "#f59e0b",
+          purple: "#8b5cf6",
+          red: "#ef4444",
+          blue: "#2563eb",
+          gold: "#d97706",
         },
         border: {
           subtle: "rgba(255, 255, 255, 0.08)",
-          glow: "rgba(0, 240, 255, 0.2)",
-          greenGlow: "rgba(0, 255, 102, 0.2)",
+          card: "rgba(255, 255, 255, 0.12)",
+          active: "#2563eb",
         }
       },
       fontFamily: {
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'monospace'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
         sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       boxShadow: {
-        'glow-cyan': '0 0 15px -3px rgba(0, 240, 255, 0.25)',
-        'glow-green': '0 0 15px -3px rgba(0, 255, 102, 0.25)',
-        'glow-amber': '0 0 15px -3px rgba(255, 176, 0, 0.25)',
-        'glow-red': '0 0 15px -3px rgba(255, 51, 102, 0.25)',
-        'glow-purple': '0 0 15px -3px rgba(168, 85, 247, 0.25)',
+        'card': '0 2px 4px 0 rgba(0, 0, 0, 0.25)',
+        'card-hover': '0 4px 12px 0 rgba(0, 0, 0, 0.35)',
+        'institutional': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1)',
       },
       animation: {
         'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'ticker': 'ticker 35s linear infinite',
+        'ticker': 'ticker 40s linear infinite',
       },
       keyframes: {
         ticker: {

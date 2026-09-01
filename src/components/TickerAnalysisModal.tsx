@@ -26,7 +26,10 @@ import {
   BookOpen, 
   Info,
   Star,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  Check,
+  Calculator
 } from 'lucide-react';
 
 interface TickerAnalysisModalProps {
@@ -45,6 +48,8 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
   onOpenFieldGuide,
 }) => {
   const [selectedPillar, setSelectedPillar] = useState<string | null>(null);
+  const [priceSimPct, setPriceSimPct] = useState<number>(5); // default +5% target simulation
+  const [copiedMemo, setCopiedMemo] = useState<boolean>(false);
   const { isWatchlisted, toggleWatchlist } = useWatchlist();
 
   if (!report) return null;
@@ -68,63 +73,127 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
     }
   };
 
-  const isCredit = report.recommendedStrategy.netDebit < 0;
   const premiumPerShare = Math.abs(report.recommendedStrategy.netDebit);
   const totalContractCost = Math.round(premiumPerShare * 100);
 
+  // Interactive P&L Payoff Simulator Calculation
+  const spot = report.spotPrice;
+  const simulatedSpot = spot * (1 + priceSimPct / 100);
+  const strike = report.recommendedStrategy.legs[0]?.strike || spot;
+  const isCall = report.recommendedStrategy.legs[0]?.type?.toLowerCase() === 'call';
+
+  let simulatedOptionValue = 0;
+  if (isCall) {
+    simulatedOptionValue = Math.max(0, simulatedSpot - strike);
+  } else {
+    simulatedOptionValue = Math.max(0, strike - simulatedSpot);
+  }
+
+  const simulatedProfitPerShare = simulatedOptionValue - premiumPerShare;
+  const simulatedTotalProfit = Math.round(simulatedProfitPerShare * 100);
+  const simulatedRoiPct = totalContractCost > 0 
+    ? Math.round((simulatedTotalProfit / totalContractCost) * 100)
+    : 0;
+
+  // Export Trade Memo to Clipboard
+  const handleCopyTradeMemo = () => {
+    const memo = `
+=========================================
+SIGMAPULSE INSTITUTIONAL TRADE AUDIT
+Ticker: $${report.ticker} (${report.name})
+Sector: ${report.sector}
+Date: ${new Date().toISOString().split('T')[0]}
+=========================================
+VERDICT: ${report.verdictTitle} (${report.confidenceLevel} Conviction)
+Composite Score: ${report.compositeScore}/100
+Takeaway: ${report.laymanOneLiner}
+
+MARKET PRICING & STRUCTURE:
+- Underlying Spot Price: $${report.spotPrice.toFixed(2)}
+- Recommended Strategy: ${report.recommendedStrategy.name}
+- Option Premium: $${premiumPerShare.toFixed(2)}/sh ($${totalContractCost} per 100-sh contract)
+- Break-Even Spot: ${report.recommendedStrategy.breakEvenPoints.map(b => `$${b}`).join(', ')}
+- Win Probability: ${report.recommendedStrategy.probabilityOfProfit}% PoP
+- Max Risk: $${report.recommendedStrategy.maxLoss} (100% Capped)
+
+5-PILLAR BREAKDOWN:
+1. Trend & Flow: ${report.fivePillars.trendPillar.score}% (${report.fivePillars.trendPillar.status})
+2. Volatility Squeeze: ${report.fivePillars.volatilityPillar.score}% (${report.fivePillars.volatilityPillar.status})
+3. Institutional Accumulation: ${report.fivePillars.insiderPillar.score}% (${report.fivePillars.insiderPillar.status})
+4. Catalyst Timing: ${report.fivePillars.catalystPillar.score}% (${report.fivePillars.catalystPillar.status})
+5. Asymmetric Risk/Reward: ${report.fivePillars.riskRewardPillar.score}% (${report.fivePillars.riskRewardPillar.status})
+=========================================
+Generated via SigmaPulse Quant Terminal
+`.trim();
+
+    navigator.clipboard.writeText(memo);
+    setCopiedMemo(true);
+    setTimeout(() => setCopiedMemo(false), 3000);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-surface-300 border border-cyan-500/40 rounded-2xl w-full max-w-5xl max-h-[92vh] overflow-y-auto shadow-2xl shadow-cyan-950/50 flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="bg-surface-300 border border-white/15 rounded-xl w-full max-w-5xl max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="p-5 border-b border-white/10 flex items-start justify-between bg-surface-200/90 sticky top-0 z-10">
+        <div className="p-5 border-b border-white/10 flex items-start justify-between bg-surface-200 sticky top-0 z-10">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 font-mono font-extrabold text-xl shadow-glow-cyan">
+            <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-institutional-blue/15 border border-institutional-blue/30 text-sky-400 font-mono font-bold text-xl">
               {report.ticker.slice(0, 3)}
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-xl font-bold font-mono text-white tracking-wider">
+                <h2 className="text-xl font-bold font-mono text-slate-100 tracking-wide">
                   ${report.ticker}
                 </h2>
-                <span className="text-xs font-mono text-slate-300">
+                <span className="text-xs font-sans text-slate-400">
                   {report.name}
                 </span>
-                <span className="bg-cyan-500/20 text-cyan-300 text-[10px] font-mono px-2 py-0.5 rounded font-bold border border-cyan-500/30">
+                <span className="bg-surface-100 text-slate-300 text-[10px] font-mono px-2 py-0.5 rounded font-semibold border border-white/10">
                   {report.sector}
                 </span>
                 <button
                   onClick={() => toggleWatchlist(report.ticker)}
                   title={isStarred ? 'Remove from Watchlist' : 'Pin to Watchlist'}
-                  className="p-1 rounded text-slate-400 hover:text-amber-400"
+                  className="p-1 rounded text-slate-400 hover:text-amber-400 transition-colors"
                 >
                   <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
                 </button>
               </div>
               <div className="flex items-center space-x-3 text-xs font-mono text-slate-400 mt-1">
-                <span>Stock Spot: <strong className="text-white">${report.spotPrice.toFixed(2)}</strong></span>
+                <span>Stock Spot: <strong className="text-slate-100">${report.spotPrice.toFixed(2)}</strong></span>
                 <span>•</span>
-                <span>Support: <strong className="text-slate-200">${report.supportResistance.support}</strong></span>
+                <span>Support: <strong className="text-slate-300">${report.supportResistance.support}</strong></span>
                 <span>•</span>
-                <span>Target: <strong className="text-terminal-green">${report.supportResistance.breakoutTarget}</strong></span>
+                <span>Target: <strong className="text-emerald-400">${report.supportResistance.breakoutTarget}</strong></span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
+            {/* Export Trade Memo Button */}
+            <button
+              onClick={handleCopyTradeMemo}
+              className="flex items-center space-x-1.5 bg-surface-100 hover:bg-surface-50 text-slate-300 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors"
+              title="Copy structured institutional trade memo to clipboard"
+            >
+              {copiedMemo ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-sky-400" />}
+              <span>{copiedMemo ? 'Copied Memo' : 'Export Memo'}</span>
+            </button>
+
             {/* Field Guide Help Trigger */}
             <button
               onClick={onOpenFieldGuide}
-              className="flex items-center space-x-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-3 py-1.5 rounded-lg text-xs font-mono transition-all"
+              className="flex items-center space-x-1.5 bg-surface-100 hover:bg-surface-50 text-slate-300 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors"
             >
-              <BookOpen className="w-3.5 h-3.5 text-cyan-400" />
+              <BookOpen className="w-3.5 h-3.5 text-sky-400" />
               <span>Guide</span>
             </button>
 
             {/* Composite Score Circle */}
             <div className="flex flex-col items-end">
-              <div className="flex items-center space-x-1.5 bg-gradient-to-r from-cyan-950 to-emerald-950 border border-cyan-500/50 px-3 py-1 rounded-lg text-xs font-mono font-bold text-terminal-green shadow-glow-green">
+              <div className="flex items-center space-x-1.5 bg-emerald-950/80 border border-emerald-700/60 px-3 py-1 rounded-lg text-xs font-mono font-bold text-emerald-400">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{report.compositeScore}/100 SIGMA SCORE</span>
+                <span>{report.compositeScore}/100 SCORE</span>
               </div>
               <span className="text-[10px] font-mono text-slate-400 mt-0.5">
                 {report.confidenceLevel} CONVICTION
@@ -133,7 +202,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-surface-100 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg bg-surface-100 hover:bg-white/10 text-slate-400 hover:text-slate-100 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -143,24 +212,24 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
         {/* Modal Body */}
         <div className="p-5 space-y-6">
           {/* Main Plain-English Recommendation Hero */}
-          <div className="bg-gradient-to-r from-surface-200 via-cyan-950/30 to-surface-200 border border-cyan-500/40 p-5 rounded-2xl shadow-lg relative overflow-hidden">
+          <div className="bg-surface-200 border border-white/10 p-5 rounded-xl shadow-card relative">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center space-x-2">
                 <span className="text-xs font-mono text-slate-400 font-bold uppercase">
                   VERDICT:
                 </span>
-                <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-3 py-0.5 rounded-lg text-xs font-mono font-extrabold shadow-glow-cyan">
+                <span className="bg-institutional-blue/20 text-sky-300 border border-institutional-blue/40 px-3 py-0.5 rounded-md text-xs font-mono font-bold">
                   {report.verdictTitle}
                 </span>
               </div>
 
-              <span className="text-xs font-mono text-terminal-green font-bold">
+              <span className="text-xs font-mono text-emerald-400 font-bold">
                 ✓ {report.rulesPassedCount} of {report.totalRulesEvaluated} Signals Aligned
               </span>
             </div>
 
-            <p className="text-sm text-white font-sans font-medium leading-relaxed mt-2 bg-black/40 p-3 rounded-xl border border-white/5">
-              💡 <strong className="text-cyan-300 font-mono">Plain English Takeaway: </strong> 
+            <p className="text-sm text-slate-200 font-sans leading-relaxed mt-2 bg-surface-300 p-3.5 rounded-lg border border-white/5">
+              💡 <strong className="text-sky-300 font-mono">Executive Summary: </strong> 
               {report.laymanOneLiner}
             </p>
           </div>
@@ -169,13 +238,13 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2">
-                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <ShieldCheck className="w-4 h-4 text-sky-400" />
                 <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
-                  The 5 Core Decision Pillars (Layman Interpretation)
+                  The 5 Core Decision Pillars
                 </h3>
               </div>
               <span className="text-[11px] font-mono text-slate-400">
-                Click any pillar for deep explanation
+                Click any pillar for signal details
               </span>
             </div>
 
@@ -186,8 +255,8 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                   <div
                     key={pillar.id}
                     onClick={() => setSelectedPillar(isSelected ? null : pillar.id)}
-                    className={`bg-surface-200/90 border p-3.5 rounded-xl cursor-pointer transition-all flex flex-col justify-between ${
-                      isSelected ? 'border-cyan-400 shadow-glow-cyan bg-surface-100' : 'border-white/10 hover:border-white/20'
+                    className={`bg-surface-200 border p-3.5 rounded-xl cursor-pointer transition-colors flex flex-col justify-between ${
+                      isSelected ? 'border-institutional-blue bg-surface-100' : 'border-white/10 hover:border-white/20'
                     }`}
                   >
                     <div>
@@ -203,7 +272,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                         </span>
                       </div>
 
-                      <div className="font-bold text-xs text-white truncate font-mono">
+                      <div className="font-bold text-xs text-slate-100 truncate font-mono">
                         {pillar.shortLabel}
                       </div>
 
@@ -212,7 +281,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                       </p>
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-white/5 text-[10px] font-mono text-slate-500 flex items-center justify-between">
+                    <div className="mt-2.5 pt-2 border-t border-white/5 text-[10px] font-mono text-slate-400 flex items-center justify-between">
                       <span>{pillar.status}</span>
                       <Info className="w-3 h-3 text-slate-400" />
                     </div>
@@ -223,13 +292,13 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
           </div>
 
           {/* Actionable Recommended Derivative Structure Card (Distinct Stock vs Option Price) */}
-          <div className="bg-surface-200/90 border border-cyan-500/40 rounded-xl p-5 shadow-lg">
+          <div className="bg-surface-200 border border-white/10 rounded-xl p-5 shadow-card">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
               <div>
-                <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider">
+                <span className="text-[10px] font-mono text-sky-400 font-bold uppercase tracking-wider">
                   RECOMMENDED OPTIONS TRADE STRUCTURE
                 </span>
-                <h3 className="text-base font-bold font-mono text-white mt-0.5">
+                <h3 className="text-base font-bold font-mono text-slate-100 mt-0.5">
                   {report.recommendedStrategy.name}
                 </h3>
               </div>
@@ -237,17 +306,17 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => onOpenPayoffModal(report.recommendedStrategy)}
-                  className="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center space-x-1.5 transition-all shadow-glow-cyan"
+                  className="bg-institutional-blue/15 hover:bg-institutional-blue/25 text-sky-300 border border-institutional-blue/30 px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center space-x-1.5 transition-colors"
                 >
-                  <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Interactive Payoff Sandbox</span>
+                  <Sliders className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Payoff Sandbox</span>
                 </button>
 
                 <button
                   onClick={onOpenBacktest}
-                  className="bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-600/40 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center space-x-1.5 transition-all"
+                  className="bg-surface-100 hover:bg-surface-50 text-slate-300 border border-white/10 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center space-x-1.5 transition-colors"
                 >
-                  <Activity className="w-3.5 h-3.5 text-purple-400" />
+                  <Activity className="w-3.5 h-3.5 text-sky-400" />
                   <span>Backtest Precedent</span>
                 </button>
               </div>
@@ -255,9 +324,9 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
 
             {/* Price Disambiguation Grid */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4 text-xs font-mono">
-              <div className="bg-black/50 p-2.5 rounded-lg border border-cyan-500/30">
-                <div className="text-cyan-400 text-[10px] font-bold">OPTION PREMIUM</div>
-                <div className="font-extrabold text-sm text-white mt-0.5">
+              <div className="bg-surface-300 p-2.5 rounded-lg border border-institutional-blue/40">
+                <div className="text-sky-400 text-[10px] font-bold">OPTION PREMIUM</div>
+                <div className="font-extrabold text-sm text-slate-100 mt-0.5">
                   ${premiumPerShare.toFixed(2)} <span className="text-[10px] text-slate-400 font-normal">/ share</span>
                 </div>
                 <div className="text-[10px] text-slate-300 mt-0.5">
@@ -265,19 +334,19 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 </div>
               </div>
 
-              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">MAX RISK (100% CAPPED)</div>
-                <div className="font-bold text-terminal-red mt-0.5">
+              <div className="bg-surface-300 p-2.5 rounded-lg border border-white/5">
+                <div className="text-slate-400 text-[10px]">MAX RISK (100% CAPPED)</div>
+                <div className="font-bold text-rose-400 mt-0.5">
                   -${report.recommendedStrategy.maxLoss}
                 </div>
-                <div className="text-[10px] text-terminal-green mt-0.5">
+                <div className="text-[10px] text-emerald-400 mt-0.5">
                   Max Gain: ${report.recommendedStrategy.maxProfit}
                 </div>
               </div>
 
-              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">BREAK-EVEN SPOT</div>
-                <div className="font-bold text-amber-300 mt-0.5">
+              <div className="bg-surface-300 p-2.5 rounded-lg border border-white/5">
+                <div className="text-slate-400 text-[10px]">BREAK-EVEN SPOT</div>
+                <div className="font-bold text-amber-400 mt-0.5">
                   {report.recommendedStrategy.breakEvenPoints.map(b => `$${b}`).join(', ')}
                 </div>
                 <div className="text-[10px] text-slate-400 mt-0.5">
@@ -285,9 +354,9 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 </div>
               </div>
 
-              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">WIN PROBABILITY</div>
-                <div className="font-bold text-cyan-300 mt-0.5">
+              <div className="bg-surface-300 p-2.5 rounded-lg border border-white/5">
+                <div className="text-slate-400 text-[10px]">WIN PROBABILITY</div>
+                <div className="font-bold text-sky-300 mt-0.5">
                   {report.recommendedStrategy.probabilityOfProfit}% PoP
                 </div>
                 <div className="text-[10px] text-slate-400 mt-0.5">
@@ -295,13 +364,59 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 </div>
               </div>
 
-              <div className="bg-black/40 p-2.5 rounded-lg border border-white/5">
-                <div className="text-slate-500 text-[10px]">UNDERLYING SPOT</div>
-                <div className="font-bold text-white mt-0.5">
+              <div className="bg-surface-300 p-2.5 rounded-lg border border-white/5">
+                <div className="text-slate-400 text-[10px]">UNDERLYING SPOT</div>
+                <div className="font-bold text-slate-100 mt-0.5">
                   ${report.spotPrice.toFixed(2)}
                 </div>
-                <div className="text-[10px] text-terminal-green mt-0.5">
+                <div className="text-[10px] text-emerald-400 mt-0.5">
                   Target: ${report.supportResistance.breakoutTarget}
+                </div>
+              </div>
+            </div>
+
+            {/* INTERACTIVE P&L & OPTION PAYOFF SIMULATOR */}
+            <div className="mt-4 p-3.5 bg-surface-300 rounded-lg border border-white/5">
+              <div className="flex items-center justify-between text-xs font-mono mb-2">
+                <span className="text-slate-300 font-bold flex items-center gap-1.5">
+                  <Calculator className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Target Stock Price Simulator & P&L Calculator:</span>
+                </span>
+                <span className="text-slate-400">
+                  Simulated Move: <strong className={priceSimPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                    {priceSimPct >= 0 ? '+' : ''}{priceSimPct}%
+                  </strong> (${simulatedSpot.toFixed(2)})
+                </span>
+              </div>
+
+              <input
+                type="range"
+                min="-15"
+                max="25"
+                step="1"
+                value={priceSimPct}
+                onChange={(e) => setPriceSimPct(parseInt(e.target.value, 10))}
+                className="w-full h-1.5 bg-surface-100 rounded-lg appearance-none cursor-pointer accent-institutional-blue"
+              />
+
+              <div className="grid grid-cols-3 gap-2 mt-3 text-xs font-mono text-center">
+                <div className="bg-surface-200 p-2 rounded border border-white/5">
+                  <span className="text-slate-400 block text-[10px]">Simulated Spot</span>
+                  <span className="font-bold text-slate-100">${simulatedSpot.toFixed(2)}</span>
+                </div>
+
+                <div className="bg-surface-200 p-2 rounded border border-white/5">
+                  <span className="text-slate-400 block text-[10px]">Contract P&L (100-sh)</span>
+                  <span className={`font-bold ${simulatedTotalProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {simulatedTotalProfit >= 0 ? '+' : ''}${simulatedTotalProfit}
+                  </span>
+                </div>
+
+                <div className="bg-surface-200 p-2 rounded border border-white/5">
+                  <span className="text-slate-400 block text-[10px]">Projected ROI %</span>
+                  <span className={`font-bold ${simulatedRoiPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {simulatedRoiPct >= 0 ? '+' : ''}{simulatedRoiPct}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -309,7 +424,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
             {/* 1-CLICK BROKER EXECUTION BUTTONS */}
             <div className="mt-4 pt-3.5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
               <span className="text-[11px] font-mono text-slate-400 flex items-center space-x-1.5">
-                <Zap className="w-3.5 h-3.5 text-terminal-green" />
+                <Zap className="w-3.5 h-3.5 text-emerald-400" />
                 <span>1-Click Broker Execution:</span>
               </span>
 
@@ -320,7 +435,7 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                     href={broker.getTradeUrl(report.ticker, report.recommendedStrategy)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-black/50 hover:bg-black/80 border border-white/10 hover:border-cyan-400/50 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center space-x-1.5 transition-all text-slate-200 hover:text-white"
+                    className="bg-surface-300 hover:bg-surface-100 border border-white/10 hover:border-sky-400/50 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center space-x-1.5 transition-colors text-slate-200 hover:text-white"
                   >
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: broker.color }} />
                     <span className="font-semibold">{broker.name}</span>
@@ -332,14 +447,14 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
           </div>
 
           {/* Evaluated Rulebook & Factor Validation Matrix */}
-          <div className="bg-surface-200/90 border border-white/10 rounded-xl p-4">
+          <div className="bg-surface-200 border border-white/10 rounded-xl p-4">
             <h4 className="text-xs font-mono font-bold text-slate-300 mb-3 uppercase tracking-wider">
               Underlying Signals & Factor Verification Matrix
             </h4>
             <div className="overflow-x-auto">
               <table className="w-full text-xs font-mono text-left">
                 <thead>
-                  <tr className="text-slate-500 border-b border-white/10 pb-2">
+                  <tr className="text-slate-400 border-b border-white/10 pb-2">
                     <th className="pb-2">CATEGORY</th>
                     <th className="pb-2">SIGNAL RULE</th>
                     <th className="pb-2">ACTUAL METRIC</th>
@@ -349,12 +464,12 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {report.evaluatedRules.map((rule) => (
-                    <tr key={rule.id} className="text-slate-200 hover:bg-white/5">
+                    <tr key={rule.id} className="text-slate-200 hover:bg-surface-100/50">
                       <td className="py-2.5 text-slate-400 font-bold text-[10px]">{rule.category}</td>
-                      <td className="py-2.5 font-semibold text-white max-w-[180px]">{rule.name}</td>
-                      <td className="py-2.5 text-cyan-300 font-bold">{rule.actualValue}</td>
+                      <td className="py-2.5 font-semibold text-slate-100 max-w-[180px]">{rule.name}</td>
+                      <td className="py-2.5 text-sky-400 font-bold">{rule.actualValue}</td>
                       <td className="py-2.5">
-                        <span className="bg-emerald-950/80 text-terminal-green border border-emerald-500/40 text-[10px] font-mono px-2 py-0.5 rounded font-bold">
+                        <span className="bg-emerald-950/80 text-emerald-400 border border-emerald-700/60 text-[10px] font-mono px-2 py-0.5 rounded font-bold">
                           {rule.status}
                         </span>
                       </td>
@@ -370,15 +485,15 @@ export const TickerAnalysisModal: React.FC<TickerAnalysisModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/10 bg-surface-200/80 flex items-center justify-between">
+        <div className="p-4 border-t border-white/10 bg-surface-200 flex items-center justify-between">
           <div className="text-xs font-mono text-slate-400">
             5-Pillar Decision Framework • Black-Scholes Mathematical Engine • 100% Capped Risk
           </div>
           <button
             onClick={onClose}
-            className="bg-cyan-500 hover:bg-cyan-400 text-black font-mono font-bold text-xs px-5 py-2 rounded-lg transition-all shadow-glow-cyan"
+            className="bg-institutional-blue hover:bg-blue-700 text-white font-mono font-bold text-xs px-5 py-2 rounded-lg transition-colors shadow-sm"
           >
-            Done
+            Close Audit
           </button>
         </div>
       </div>

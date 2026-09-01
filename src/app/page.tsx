@@ -16,6 +16,7 @@ import { TickerRibbon } from '@/components/TickerRibbon';
 import { TickerSearchBar } from '@/components/TickerSearchBar';
 import { SectorNavigation } from '@/components/SectorNavigation';
 import { StockAssetCard } from '@/components/StockAssetCard';
+import { InstitutionalTableView } from '@/components/InstitutionalTableView';
 import { OptionsSignalsMatrix } from '@/components/OptionsSignalsMatrix';
 import { NewsIntelligenceFeed } from '@/components/NewsIntelligenceFeed';
 import { PoliticianTradeTracker } from '@/components/PoliticianTradeTracker';
@@ -27,18 +28,11 @@ import { InteractiveFieldGuideModal } from '@/components/InteractiveFieldGuideMo
 import { WatchlistDrawer } from '@/components/WatchlistDrawer';
 
 import { 
-  Zap, 
-  Activity, 
   Flame, 
-  TrendingUp, 
-  Landmark, 
-  Layers, 
-  ShieldCheck, 
-  ArrowUpRight, 
-  Info, 
-  Radio, 
-  Sparkles, 
-  BookOpen 
+  LayoutGrid, 
+  ListFilter, 
+  Table2, 
+  ArrowUpDown 
 } from 'lucide-react';
 
 export default function SigmaPulseTerminal() {
@@ -52,6 +46,8 @@ export default function SigmaPulseTerminal() {
   const [isSimulatedLive, setIsSimulatedLive] = useState<boolean>(true);
   const [audioEnabled, setAudioEnabled] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [sortBy, setSortBy] = useState<'score' | 'change' | 'iv' | 'ticker'>('score');
 
   // Modals state
   const [payoffModalStrategy, setPayoffModalStrategy] = useState<OptionsStrategyStructure | null>(null);
@@ -92,13 +88,22 @@ export default function SigmaPulseTerminal() {
     return sectorsData.find(s => s.id === activeSectorId) || sectorsData[0];
   }, [activeSectorId, sectorsData]);
 
-  // Active stocks to display
+  // Active stocks to display with sorting applied
   const displayedStocks = useMemo(() => {
-    if (activeSectorId === 'all') {
-      return allStocks;
+    let list = activeSectorId === 'all' ? [...allStocks] : (activeSector ? [...activeSector.stocks] : []);
+
+    if (sortBy === 'score') {
+      list.sort((a, b) => analyzeTickerSignals(b).compositeScore - analyzeTickerSignals(a).compositeScore);
+    } else if (sortBy === 'change') {
+      list.sort((a, b) => b.changePercent - a.changePercent);
+    } else if (sortBy === 'iv') {
+      list.sort((a, b) => b.ivRank - a.ivRank);
+    } else if (sortBy === 'ticker') {
+      list.sort((a, b) => a.ticker.localeCompare(b.ticker));
     }
-    return activeSector ? activeSector.stocks : [];
-  }, [activeSectorId, activeSector, allStocks]);
+
+    return list;
+  }, [activeSectorId, activeSector, allStocks, sortBy]);
 
   // Active sector options signals
   const displayedSignals = useMemo(() => {
@@ -191,7 +196,7 @@ export default function SigmaPulseTerminal() {
   };
 
   return (
-    <div className="min-h-screen bg-[#06090e] text-slate-100 flex flex-col font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col font-sans transition-colors duration-200">
       {/* Top Institutional Header Bar with Theme Switcher & Watchlist */}
       <Header
         macroStats={macroStats}
@@ -224,24 +229,15 @@ export default function SigmaPulseTerminal() {
         {/* Dynamic Sector Overview Banner */}
         {activeSector && (
           <div 
-            className="p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all"
-            style={{
-              backgroundColor: `${activeSector.color}08`,
-              borderColor: `${activeSector.color}30`,
-              boxShadow: `0 0 20px -5px ${activeSector.glowColor}`,
-            }}
+            className="p-4 rounded-xl border border-white/10 bg-surface-200 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors"
           >
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-lg font-bold font-mono text-white">
+                <span className="text-lg font-bold font-mono text-slate-100">
                   {activeSector.name}
                 </span>
                 <span
-                  className="text-xs font-mono font-bold px-2 py-0.5 rounded"
-                  style={{
-                    backgroundColor: `${activeSector.color}25`,
-                    color: activeSector.color,
-                  }}
+                  className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-surface-100 text-sky-400 border border-white/10"
                 >
                   24H: {activeSector.dailyChange >= 0 ? '+' : ''}{activeSector.dailyChange.toFixed(2)}%
                 </span>
@@ -251,15 +247,15 @@ export default function SigmaPulseTerminal() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 text-xs font-mono">
-              <div className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">
+            <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
+              <div className="bg-surface-300 px-3 py-1.5 rounded-lg border border-white/5">
                 <div className="text-slate-500 text-[10px]">MACRO DRIVER</div>
                 <div className="text-slate-200 font-medium">{activeSector.macroDriver}</div>
               </div>
 
-              <div className="bg-black/40 px-3 py-1.5 rounded-lg border border-white/5">
+              <div className="bg-surface-300 px-3 py-1.5 rounded-lg border border-white/5">
                 <div className="text-slate-500 text-[10px]">KEY CATALYST THEME</div>
-                <div className="text-cyan-300 font-medium">{activeSector.keyCatalystTheme}</div>
+                <div className="text-sky-300 font-medium">{activeSector.keyCatalystTheme}</div>
               </div>
             </div>
           </div>
@@ -269,31 +265,81 @@ export default function SigmaPulseTerminal() {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* Left / Main Section (7 cols on XL) */}
           <div className="xl:col-span-7 space-y-6">
-            {/* Sector Stocks Cards Grid */}
+            {/* Sector Stocks Controls & View Options */}
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <div className="flex items-center space-x-2">
-                  <Flame className="w-4 h-4 text-cyan-400" />
+                  <Flame className="w-4 h-4 text-sky-400" />
                   <h3 className="text-sm font-bold font-mono uppercase tracking-wider text-slate-200">
                     High-Beta Sector Assets & Greeks Matrix
                   </h3>
                 </div>
-                <span className="text-[11px] font-mono text-slate-500">
-                  {displayedStocks.length} Assets Active • Click Any Card for Live 5-Pillar Audit
-                </span>
+
+                <div className="flex items-center space-x-3 text-xs font-mono">
+                  {/* Sort Filter Selector */}
+                  <div className="flex items-center space-x-1.5 bg-surface-200 border border-white/10 px-2.5 py-1 rounded-lg">
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                    <span className="text-slate-400 hidden sm:inline text-[11px]">Sort:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as any)}
+                      className="bg-transparent text-slate-200 font-semibold focus:outline-none cursor-pointer text-xs"
+                    >
+                      <option value="score" className="bg-surface-300 text-slate-100">5P Score (High)</option>
+                      <option value="change" className="bg-surface-300 text-slate-100">24h Gainers (%)</option>
+                      <option value="iv" className="bg-surface-300 text-slate-100">IV Rank (High)</option>
+                      <option value="ticker" className="bg-surface-300 text-slate-100">Ticker (A-Z)</option>
+                    </select>
+                  </div>
+
+                  {/* Grid vs Table View Mode Toggle */}
+                  <div className="flex items-center bg-surface-200 border border-white/10 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setViewMode('cards')}
+                      title="Card Grid View"
+                      className={`p-1.5 rounded transition-colors ${
+                        viewMode === 'cards'
+                          ? 'bg-institutional-blue text-white shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <LayoutGrid className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('table')}
+                      title="Compact Matrix Table View"
+                      className={`p-1.5 rounded transition-colors ${
+                        viewMode === 'table'
+                          ? 'bg-institutional-blue text-white shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Table2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {displayedStocks.map((stock) => (
-                  <StockAssetCard
-                    key={stock.ticker}
-                    stock={stock}
-                    onSelectStock={handleSelectStock}
-                    onOpenOptions={handleOpenOptions}
-                    onOpenBacktest={() => setIsBacktestOpen(true)}
-                  />
-                ))}
-              </div>
+              {/* Rendering Cards vs Compact Table View */}
+              {viewMode === 'cards' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {displayedStocks.map((stock) => (
+                    <StockAssetCard
+                      key={stock.ticker}
+                      stock={stock}
+                      onSelectStock={handleSelectStock}
+                      onOpenOptions={handleOpenOptions}
+                      onOpenBacktest={() => setIsBacktestOpen(true)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <InstitutionalTableView
+                  stocks={displayedStocks}
+                  onSelectStock={handleSelectStock}
+                  onOpenOptions={handleOpenOptions}
+                />
+              )}
             </div>
 
             {/* Options Signals Matrix */}
@@ -324,9 +370,9 @@ export default function SigmaPulseTerminal() {
       </main>
 
       {/* Terminal Footer */}
-      <footer className="border-t border-white/10 bg-[#080d1a] py-3 text-center text-xs font-mono text-slate-500">
+      <footer className="border-t border-white/10 bg-surface-300 py-3 text-center text-xs font-mono text-slate-400">
         <div className="max-w-[1780px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>SigmaPulse Institutional Derivatives & Quantitative News Terminal • v1.0.0 Pro Edition</span>
+          <span>SigmaPulse Institutional Derivatives & Quantitative News Terminal • Pro Edition</span>
           <span className="text-slate-400">Black-Scholes-Merton • 5-Pillar Decision Framework • Multi-Theme Engine</span>
         </div>
       </footer>
