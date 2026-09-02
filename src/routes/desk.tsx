@@ -8,9 +8,10 @@ import { SignedPct } from "@/components/Signed";
 type Search = { symbol?: string };
 
 export const Route = createFileRoute("/desk")({
-  validateSearch: (s: Record<string, unknown>): Search => ({
-    symbol: typeof s.symbol === "string" ? s.symbol.toUpperCase() : "AAPL",
-  }),
+  validateSearch: (s: Record<string, unknown>): Search => {
+    const symbol = typeof s.symbol === "string" ? s.symbol.toUpperCase() : undefined;
+    return symbol ? { symbol } : {};
+  },
   loaderDeps: ({ search }) => ({ symbol: search.symbol ?? "AAPL" }),
   loader: ({ deps }) => loadTicker({ data: { symbol: deps.symbol } }),
   component: DeskPage,

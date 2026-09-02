@@ -7,9 +7,10 @@ import { formatIv } from "@/lib/format";
 type Search = { symbol?: string };
 
 export const Route = createFileRoute("/options")({
-  validateSearch: (s: Record<string, unknown>): Search => ({
-    symbol: typeof s.symbol === "string" ? s.symbol.toUpperCase() : "SPY",
-  }),
+  validateSearch: (s: Record<string, unknown>): Search => {
+    const symbol = typeof s.symbol === "string" ? s.symbol.toUpperCase() : undefined;
+    return symbol ? { symbol } : {};
+  },
   loaderDeps: ({ search }) => ({ symbol: search.symbol ?? "SPY" }),
   loader: ({ deps }) => loadOptions({ data: { symbol: deps.symbol } }),
   component: OptionsPage,
