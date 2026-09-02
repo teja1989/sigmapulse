@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-  # Run the verify job on PRs too. Without this the gate only ever runs AFTER a merge
-  # has already landed on main — it could never actually block a bad merge.
   pull_request:
     branches:
       - main
@@ -19,7 +17,6 @@ env:
   REPOSITORY: sigmapulse
   IMAGE_NAME: sigmapulse-terminal
 
-# Two rapid pushes must not race each other to production.
 concurrency:
   group: deploy-prod
   cancel-in-progress: false
@@ -35,7 +32,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "22"
           cache: npm
 
       - name: Install dependencies
@@ -50,7 +47,6 @@ jobs:
   deploy:
     name: Build & Deploy to Google Cloud Run
     needs: verify
-    # Never deploy from a pull request — only from a push to main (or manual dispatch).
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -61,16 +57,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Google Cloud Authentication
-      # Supports either Service Account JSON key (GCP_SA_KEY) or Workload Identity Federation
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-          # Uncomment if using Workload Identity Federation:
-          # workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          # service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -110,12 +101,20 @@ jobs:
             --port=3000
             --min-instances=0
             --max-instances=5
-            --memory=512Mi
+            --memory=1Gi
             --cpu=1
+            --timeout=300
+            --cpu-boost
 
       - name: Print Live Service URL
         run: |
-          echo "=========================================================="
-          echo "🚀 SigmaPulse Terminal successfully deployed to Cloud Run!"
-          echo "URL: ${{ steps.deploy.outputs.url }}"
-          echo "=========================================================="
+          echo "SigmaPulse deployed: ${{ steps.deploy.outputs.url }}"
+
+      - name: Smoke routes
+        run: |
+          URL="${{ steps.deploy.outputs.url }}"
+          for path in / /options /news /desk /ticker/AAPL; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
+            echo "$path $code"
+            test "$code" = "200"
+          done

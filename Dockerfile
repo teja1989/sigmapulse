@@ -1,42 +1,22 @@
-# Stage 1: Install dependencies
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
+FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-
-COPY package.json package-lock.json* ./
-# `npm ci || npm install` silently proceeded on lockfile drift, defeating the lockfile.
+COPY package.json package-lock.json ./
 RUN npm ci
 
-# Stage 2: Build application
-FROM node:20-alpine AS builder
+FROM node:22-bookworm-slim AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NITRO_PRESET=node-server
+ENV VITE_AUTH_ENABLED=false
+RUN npm run build:node
 
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
-
-RUN npm run build
-
-# Stage 3: Production Runner
-FROM node:20-alpine AS runner
+FROM node:22-bookworm-slim AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOST=0.0.0.0
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy built standalone server and static assets
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
+ENV VITE_AUTH_ENABLED=false
+COPY --from=builder /app/.output ./.output
 EXPOSE 3000
-
-CMD ["node", "server.js"]
+CMD ["node", ".output/server/index.mjs"]

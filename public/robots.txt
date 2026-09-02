@@ -1,3 +1,2 @@
-# User-agent rules for SigmaPulse Quant Terminal
 User-agent: *
 Allow: /

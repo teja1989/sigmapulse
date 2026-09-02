@@ -1,38 +1,15 @@
-# Dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-
-# Testing
-/coverage
-
-# Next.js build output
-/.next/
-/out/
-
-# Production build
-/build
-
-# Environment variables
-.env*.local
+node_modules
+.output
+.nitro
+.tanstack
+.vinxi
+dist
 .env
-.env.production
-
-# Debug logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
-# OS metadata
+.env.*
+!.env.example
+*.log
 .DS_Store
-*.pem
-Thumbs.db
+screenshots
+artifacts
+coverage
+.grok/og-pending
