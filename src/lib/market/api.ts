@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { auditDesk, decideAction } from "./pillars";
 import { capFromMarketCap, filterNews, getSector, isCapSize, isSectorId, type CapSize, type SectorId } from "./sectors";
+import { scorePotential, type Potential } from "./setup";
 import { INDEX_UNIVERSE, type ActionCall, type DeskAudit, type NewsItem, type OptionSnapshot, type Quote } from "./types";
 import { fetchNews, fetchOptions, fetchQuote, fetchQuotes, normalizeSymbol } from "./yahoo";
 
@@ -10,6 +11,7 @@ export interface PulseName {
   cap: CapSize | null;
   tag: string;
   watch: string;
+  setup: Potential;
 }
 
 export interface SectorQueueItem {
@@ -37,7 +39,23 @@ export interface TickerPayload {
   options: OptionSnapshot | null;
   news: NewsItem[];
   desk: DeskAudit | null;
+  setup: Potential | null;
   error: string | null;
+}
+
+const SETUP_RANK: Record<Potential["kind"], number> = {
+  coil: 0,
+  lag: 1,
+  room: 2,
+  wash: 3,
+  spent: 4,
+  none: 5,
+};
+
+function bySetup(a: PulseName, b: PulseName) {
+  const d = SETUP_RANK[a.setup.kind] - SETUP_RANK[b.setup.kind];
+  if (d !== 0) return d;
+  return (b.setup.rr ?? 0) - (a.setup.rr ?? 0);
 }
 
 export const loadPulse = createServerFn({ method: "GET" })
@@ -54,6 +72,7 @@ export const loadPulse = createServerFn({ method: "GET" })
       fetchNews(sector.newsQuery),
     ]);
     const bySymbol = new Map(quotes.map((q) => [q.symbol, q]));
+    const spy = indexes.find((q) => q.symbol === "SPY") ?? null;
     const allNames: PulseName[] = [];
     for (const row of sector.names) {
       const quote = bySymbol.get(row.symbol);
@@ -66,6 +85,7 @@ export const loadPulse = createServerFn({ method: "GET" })
         cap,
         tag: row.tag,
         watch: row.watch,
+        setup: scorePotential(quote, spy),
       });
     }
     const counts = {
@@ -74,7 +94,7 @@ export const loadPulse = createServerFn({ method: "GET" })
       mid: allNames.filter((n) => n.cap === "mid").length,
       large: allNames.filter((n) => n.cap === "large").length,
     };
-    const names = data.cap === "all" ? allNames : allNames.filter((n) => n.cap === data.cap);
+    const names = (data.cap === "all" ? allNames : allNames.filter((n) => n.cap === data.cap)).sort(bySetup);
     const news = filterNews(rawNews, sector.newsFilter);
     const queue = (data.cap === "all" ? allNames : names).map((n) => ({
       symbol: n.quote.symbol,
@@ -113,6 +133,7 @@ export const loadTicker = createServerFn({ method: "GET" })
         options,
         news,
         desk: null,
+        setup: null,
         error: `No delayed quote for ${symbol}. Yahoo may be rate-limiting or the symbol is invalid.`,
       };
     }
@@ -121,6 +142,7 @@ export const loadTicker = createServerFn({ method: "GET" })
       options,
       news,
       desk: auditDesk(quote, options, news),
+      setup: scorePotential(quote),
       error: null,
     };
   });

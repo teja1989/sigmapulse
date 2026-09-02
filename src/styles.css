@@ -54,3 +54,30 @@
     transition: none !important;
   }
 }
+
+@keyframes desk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes desk-bar {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+.desk-spin {
+  animation: desk-spin 0.7s linear infinite;
+}
+
+.desk-pending-bar {
+  height: 2px;
+  width: 28%;
+  background: var(--color-accent);
+  animation: desk-bar 0.9s ease-in-out infinite;
+}
+

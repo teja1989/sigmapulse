@@ -6,7 +6,7 @@ const cache = new Map<string, CacheEntry>();
 
 export async function fetchJson<T>(
   urls: string[],
-  ttlMs = 20_000,
+  ttlMs = 45_000,
   timeoutMs = 6_000,
 ): Promise<T | null> {
   const key = urls[0] ?? "";

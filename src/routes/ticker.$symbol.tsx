@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CallReason } from "@/components/CallReason";
+import { MissingBits } from "@/components/MissingBits";
 import { NewsList } from "@/components/NewsList";
 import { OptionsTable } from "@/components/OptionsTable";
 import { PayoffLab } from "@/components/PayoffLab";
 import { PillarBoard } from "@/components/PillarBoard";
+import { PotentialCard } from "@/components/PotentialCard";
 import { QuoteChart } from "@/components/QuoteChart";
 import { SignalChip } from "@/components/SignalChip";
 import { SignedPct } from "@/components/Signed";
@@ -14,6 +16,7 @@ import { readWatchlist, toggleWatch } from "@/lib/watchlist";
 
 export const Route = createFileRoute("/ticker/$symbol")({
   loader: ({ params }) => loadTicker({ data: { symbol: params.symbol } }),
+  pendingMs: 8_000,
   component: TickerPage,
 });
 
@@ -71,6 +74,8 @@ function TickerPage() {
             </Link>
           </div>
           <QuoteChart quote={quote} />
+          {data.setup && <PotentialCard setup={data.setup} />}
+          <MissingBits />
           <dl className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-4 text-sm sm:grid-cols-3">
             <div>
               <dt className="text-xs text-subtle">Volume</dt>

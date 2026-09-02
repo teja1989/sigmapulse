@@ -4,6 +4,7 @@ import { loadNews } from "@/lib/market/api";
 
 export const Route = createFileRoute("/news")({
   loader: () => loadNews({ data: { q: "US stocks earnings options" } }),
+  pendingMs: 8_000,
   component: NewsPage,
 });
 
