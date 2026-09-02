@@ -1,11 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
-import { auditDesk } from "./pillars";
-import { INDEX_UNIVERSE, PULSE_UNIVERSE, type DeskAudit, type NewsItem, type OptionSnapshot, type Quote } from "./types";
+import { auditDesk, decideAction } from "./pillars";
+import { INDEX_UNIVERSE, PULSE_UNIVERSE, type ActionCall, type DeskAudit, type NewsItem, type OptionSnapshot, type Quote } from "./types";
 import { fetchNews, fetchOptions, fetchQuote, fetchQuotes, normalizeSymbol } from "./yahoo";
+
+export interface PulseName {
+  quote: Quote;
+  call: ActionCall;
+}
 
 export interface PulsePayload {
   indexes: Quote[];
-  names: Quote[];
+  names: PulseName[];
   news: NewsItem[];
   asOf: string;
 }
@@ -24,7 +29,12 @@ export const loadPulse = createServerFn({ method: "GET" }).handler(async (): Pro
     fetchQuotes(PULSE_UNIVERSE),
     fetchNews("stock market"),
   ]);
-  return { indexes, names, news, asOf: new Date().toISOString() };
+  return {
+    indexes,
+    names: names.map((quote) => ({ quote, call: decideAction(quote) })),
+    news,
+    asOf: new Date().toISOString(),
+  };
 });
 
 export const loadTicker = createServerFn({ method: "GET" })

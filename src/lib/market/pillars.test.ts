@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ema, realizedVol, rsi14, scoreFlow, scoreTrend } from "./pillars.ts";
+import { decideAction, ema, realizedVol, rsi14, scoreFlow, scoreTrend } from "./pillars.ts";
 import type { Quote } from "./types.ts";
 
 function quote(closes: number[]): Quote {
@@ -53,3 +53,33 @@ test("flow pillar stays unobserved", () => {
   assert.equal(p.observed, false);
   assert.equal(p.score, null);
 });
+
+test("rising unstretched series is Buy", () => {
+  const base = Array.from({ length: 46 }, (_, i) => 80 + i * 0.35);
+  const tail = [96, 96.4, 96.1, 96.8, 96.5, 97.1, 96.8, 97.4, 97.1, 97.6, 97.3, 97.9, 97.5, 98];
+  const closes = [...base, ...tail];
+  const q = quote(closes);
+  q.low52 = 70;
+  q.high52 = 130;
+  q.price = 98;
+  q.changePct = 0.3;
+  const call = decideAction(q);
+  assert.equal(call.action, "buy", call.why);
+});
+
+test("hard downtrend is Avoid", () => {
+  const head = Array.from({ length: 46 }, (_, i) => 140 - i * 0.2);
+  // grind down with enough bounces that RSI is not washed out
+  const last = [131, 131.8, 131.2, 132, 131.4, 131.9, 131.1, 131.6, 130.8, 131.3, 130.6, 131.1, 130.4, 130.9];
+  const q = quote([...head, ...last]);
+  q.changePct = -0.4;
+  const call = decideAction(q);
+  assert.equal(call.action, "avoid", call.why);
+});
+
+test("short history is Wait", () => {
+  const call = decideAction(quote([100, 101, 102]));
+  assert.equal(call.action, "wait");
+});
+
+

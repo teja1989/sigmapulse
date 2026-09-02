@@ -45,9 +45,7 @@ export function PayoffLab({ quote, iv }: { quote: Quote; iv: number | null }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-medium text-fg">Payoff lab</h2>
-          <p className="text-xs text-subtle">
-            Black-Scholes on delayed spot. Contract multiplier 100. Not a live fill.
-          </p>
+          <p className="text-xs text-subtle">Spot delayed. One contract = 100 shares.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {(["long-call", "bull-call", "long-put"] as const).map((k) => (

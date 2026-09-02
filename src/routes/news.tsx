@@ -13,9 +13,7 @@ function NewsPage() {
     <div className="space-y-5">
       <div>
         <h1 className="font-display text-2xl tracking-tight">News</h1>
-        <p className="mt-1 max-w-2xl text-sm text-muted">
-          Yahoo Finance search headlines. Sentiment is not scored. Open the source for the story.
-        </p>
+        <p className="mt-1 text-sm text-muted">Latest headlines.</p>
       </div>
       <NewsList items={items} />
     </div>

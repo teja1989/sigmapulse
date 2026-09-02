@@ -4,8 +4,9 @@ import { OptionsTable } from "@/components/OptionsTable";
 import { PayoffLab } from "@/components/PayoffLab";
 import { PillarBoard } from "@/components/PillarBoard";
 import { QuoteChart } from "@/components/QuoteChart";
+import { SignalChip } from "@/components/SignalChip";
 import { SignedPct } from "@/components/Signed";
-import { formatMoney, formatVol, shortTime } from "@/lib/format";
+import { formatMoney, formatVol } from "@/lib/format";
 import { loadTicker } from "@/lib/market/api";
 import { useState } from "react";
 import { readWatchlist, toggleWatch } from "@/lib/watchlist";
@@ -20,17 +21,23 @@ function TickerPage() {
   const { symbol } = Route.useParams();
   const [watched, setWatched] = useState(() => readWatchlist().includes(symbol.toUpperCase()));
   const quote = data.quote;
+  const call = data.desk?.call;
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-subtle">Ticker dossier</p>
-          <h1 className="mt-1 font-display text-3xl tracking-tight">{symbol.toUpperCase()}</h1>
+          <h1 className="font-display text-3xl tracking-tight">{symbol.toUpperCase()}</h1>
           {quote && <p className="text-sm text-muted">{quote.name}</p>}
+          {call && <p className="mt-2 text-sm text-muted">{call.why}</p>}
         </div>
         {quote && (
           <div className="text-right">
+            {call && (
+              <div className="mb-2 flex justify-end">
+                <SignalChip call={call} size="lg" />
+              </div>
+            )}
             <div className="font-mono text-3xl tabular-nums">{formatMoney(quote.price)}</div>
             <SignedPct value={quote.changePct} />
           </div>
@@ -48,18 +55,18 @@ function TickerPage() {
               }}
               className="h-10 rounded-md border border-border px-3 text-sm text-muted"
             >
-              {watched ? "Remove from watchlist" : "Watch"}
+              {watched ? "On watchlist" : "Add to watchlist"}
             </button>
             <Link
               to="/desk"
               search={{ symbol: quote.symbol }}
               className="inline-flex h-10 items-center rounded-md border border-border px-3 text-sm text-muted no-underline"
             >
-              Open desk
+              Desk
             </Link>
           </div>
           <QuoteChart quote={quote} />
-          <dl className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-4 text-sm sm:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-4 text-sm sm:grid-cols-3">
             <div>
               <dt className="text-xs text-subtle">Volume</dt>
               <dd className="font-mono">{formatVol(quote.volume)}</dd>
@@ -69,14 +76,10 @@ function TickerPage() {
               <dd className="font-mono">{formatVol(quote.avgVolume)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-subtle">52w range</dt>
+              <dt className="text-xs text-subtle">52w</dt>
               <dd className="font-mono text-xs">
                 {formatMoney(quote.low52)} – {formatMoney(quote.high52)}
               </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-subtle">As of</dt>
-              <dd className="text-xs text-muted">{shortTime(quote.provenance.asOf)}</dd>
             </div>
           </dl>
           <PayoffLab quote={quote} iv={data.options?.atmIv ?? null} />
@@ -85,7 +88,7 @@ function TickerPage() {
       <PillarBoard desk={data.desk} />
       <OptionsTable snapshot={data.options} />
       <section className="space-y-3">
-        <h2 className="text-sm font-medium">Related headlines</h2>
+        <h2 className="text-sm font-medium">Headlines</h2>
         <NewsList items={data.news} />
       </section>
     </div>
