@@ -1,4 +1,4 @@
-import type { DeskAudit, NewsItem, OptionSnapshot, Pillar, Quote } from "./types";
+import type { ActionCall, DeskAudit, NewsItem, OptionSnapshot, Pillar, Quote } from "./types";
 
 function mean(xs: number[]): number {
   if (!xs.length) return NaN;
@@ -78,10 +78,10 @@ export function scoreTrend(quote: Quote): Pillar {
     score: observed ? Number((score ?? 50).toFixed(0)) : null,
     layman: observed
       ? quote.changePct >= 0
-        ? "Buyers still have the tape."
-        : "Sellers have the tape today."
-      : "Not enough daily history to score trend.",
-    detail: observed ? bits.join(" · ") : "Need ~20 daily closes from Yahoo chart.",
+        ? "Price is holding up."
+        : "Price is under pressure today."
+      : "Not enough history yet.",
+    detail: observed ? bits.join(" · ") : "Need more daily closes.",
     observed,
   };
 }
@@ -95,8 +95,8 @@ export function scoreVol(quote: Quote, options: OptionSnapshot | null): Pillar {
       name: "Volatility & pricing value",
       weight: 0.2,
       score: null,
-      layman: "No ATM implied vol and not enough history for realized vol.",
-      detail: "IVR is not estimated from the 52-week price range.",
+      layman: "No vol reading yet.",
+      detail: "Need an options print or more daily history.",
       observed: false,
     };
   }
@@ -117,18 +117,18 @@ export function scoreVol(quote: Quote, options: OptionSnapshot | null): Pillar {
       if (spread > 0.08) score = clamp(score - 10);
     }
   }
-  bits.push("IV rank is not shown — no 1-year IV history in this feed.");
+  bits.push("No 1-year IV rank in this feed.");
   return {
     id: "vol",
-    name: "Volatility & pricing value",
+    name: "Volatility",
     weight: 0.2,
     score: Number(score.toFixed(0)),
     layman:
       iv != null && iv < 0.28
-        ? "Options look relatively cheap versus a high-vol tape."
+        ? "Options look cheap."
         : iv != null && iv > 0.5
-          ? "Options are expensive. Prefer defined-risk spreads."
-          : "Vol is mid-range. No automatic cheap/rich call.",
+          ? "Options are expensive."
+          : "Vol is ordinary.",
     detail: bits.join(" · "),
     observed: true,
   };
@@ -137,11 +137,11 @@ export function scoreVol(quote: Quote, options: OptionSnapshot | null): Pillar {
 export function scoreFlow(): Pillar {
   return {
     id: "flow",
-    name: "Smart money & congressional flow",
+    name: "Smart money",
     weight: 0.18,
     score: null,
-    layman: "Not scored. No live STOCK Act / Form 4 feed is wired.",
-    detail: "This pillar stays blank rather than inventing insider flow.",
+    layman: "Skipped — no insider feed.",
+    detail: "",
     observed: false,
   };
 }
@@ -151,14 +151,13 @@ export function scoreCatalyst(news: NewsItem[]): Pillar {
   const score = observed ? clamp(40 + Math.min(news.length, 8) * 5) : null;
   return {
     id: "catalyst",
-    name: "Catalyst & event power",
+    name: "News",
     weight: 0.22,
     score,
     layman: observed
-      ? `${news.length} related headlines in the delayed Yahoo news search.`
-      : "No headlines returned for this ticker.",
-    detail:
-      "This is news density, not a 10-year event backtest. Historical win-rate is unobserved.",
+      ? `${news.length} recent headlines.`
+      : "Quiet. No headlines.",
+    detail: "",
     observed,
   };
 }
@@ -168,11 +167,11 @@ export function scoreSafety(options: OptionSnapshot | null): Pillar {
   if (!hasChain) {
     return {
       id: "safety",
-      name: "Downside safety & protection",
+      name: "Protection",
       weight: 0.18,
       score: null,
-      layman: "No options chain — cannot size defined-risk structures.",
-      detail: "Safety is scored only when a delayed chain is present.",
+      layman: "No options chain.",
+      detail: "",
       observed: false,
     };
   }
@@ -182,13 +181,71 @@ export function scoreSafety(options: OptionSnapshot | null): Pillar {
   const score = clamp(35 + Math.min(liquid.length, 40));
   return {
     id: "safety",
-    name: "Downside safety & protection",
+    name: "Protection",
     weight: 0.18,
     score,
-    layman: "Defined-risk spreads are constructible from the listed chain.",
-    detail: `${liquid.length} contracts with a live bid/ask. Max loss is the debit you pay — not a forecast.`,
+    layman: "You can cap risk with a spread.",
+    detail: "",
     observed: true,
   };
+}
+
+export function decideAction(quote: Quote, options?: OptionSnapshot | null): ActionCall {
+  const rsi = rsi14(quote.closes);
+  const e20 = ema(quote.closes, 20);
+  const e50 = ema(quote.closes, 50);
+  const high = quote.high52;
+  const low = quote.low52;
+  const rangePct =
+    high != null && low != null && high > low
+      ? ((quote.price - low) / (high - low)) * 100
+      : null;
+  const iv = options?.atmIv ?? null;
+
+  if (quote.closes.length < 20 || e20 == null || e50 == null || rsi == null) {
+    return { action: "wait", label: "Wait", why: "Not enough tape yet." };
+  }
+
+  const up = e20 > e50;
+  const down = e20 < e50 * 0.995;
+  const stretched = rangePct != null && rangePct >= 92;
+  const washed = rangePct != null && rangePct <= 12;
+  const hot = rsi >= 75;
+  const cold = rsi <= 30;
+  const dump = quote.changePct <= -2.5;
+  const richVol = iv != null && iv >= 0.55;
+
+  if (down && dump) {
+    return { action: "avoid", label: "Avoid", why: "Trend and today both point down." };
+  }
+  if (down && !cold) {
+    return { action: "avoid", label: "Avoid", why: "Trend is down." };
+  }
+  if (down && cold) {
+    return { action: "watch", label: "Watch", why: "Washed out. Wait for a turn." };
+  }
+  if (up && stretched && hot) {
+    return { action: "wait", label: "Wait", why: "Too extended. Let it cool." };
+  }
+  if (up && hot) {
+    return { action: "watch", label: "Watch", why: "Hot. Add it, don’t chase." };
+  }
+  if (up && richVol) {
+    return { action: "watch", label: "Watch", why: "Trend is fine. Options are expensive." };
+  }
+  if (up && rsi >= 40 && rsi <= 74 && !stretched) {
+    return { action: "buy", label: "Buy", why: "Uptrend and not stretched." };
+  }
+  if (up && washed) {
+    return { action: "watch", label: "Watch", why: "Uptrend, sitting near the lows." };
+  }
+  if (up) {
+    return { action: "watch", label: "Watch", why: "Uptrend, but the entry isn’t clean." };
+  }
+  if (cold) {
+    return { action: "watch", label: "Watch", why: "Oversold. Wait for a bounce." };
+  }
+  return { action: "wait", label: "Wait", why: "Sideways. No reason to act." };
 }
 
 export function auditDesk(
@@ -213,17 +270,14 @@ export function auditDesk(
           ).toFixed(0),
         )
       : null;
-  const notes = [
-    quote.provenance.label,
-    options?.provenance.label ?? "Options chain unobserved",
-    "Congressional / Form 4 flow unobserved",
-    "Event backtest unobserved",
-  ];
-  let verdict = "Insufficient observed inputs.";
-  if (composite != null) {
-    if (composite >= 70) verdict = "Constructive on observed pillars. Still not a recommendation.";
-    else if (composite >= 50) verdict = "Mixed tape. Size small or wait for cleaner vol.";
-    else verdict = "Defensive posture on observed pillars.";
-  }
-  return { symbol: quote.symbol, composite, verdict, pillars, provenanceNotes: notes };
+  const call = decideAction(quote, options);
+  return {
+    symbol: quote.symbol,
+    composite,
+    verdict: call.why,
+    call,
+    pillars,
+    provenanceNotes: [],
+  };
 }
+

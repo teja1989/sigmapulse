@@ -30,10 +30,8 @@ function OptionsPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl tracking-tight">Unusual options</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            Nearest Yahoo expiry. Unusual is volume versus open interest — not dark-pool prints.
-          </p>
+          <h1 className="font-display text-2xl tracking-tight">Options</h1>
+          <p className="mt-1 text-sm text-muted">Unusual volume versus open interest.</p>
         </div>
         <form onSubmit={onSubmit} className="flex gap-2">
           <input

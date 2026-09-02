@@ -65,9 +65,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-[1400px] px-4 py-5 pb-16">{children}</main>
-      <footer className="border-t border-border px-4 py-4 text-center text-xs text-subtle">
-        Delayed Yahoo Finance quotes and options. Not a broker. Not advice.
-      </footer>
     </div>
   );
 }

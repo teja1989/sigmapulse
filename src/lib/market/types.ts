@@ -78,10 +78,19 @@ export interface Pillar {
   observed: boolean;
 }
 
+export type Action = "buy" | "watch" | "wait" | "avoid";
+
+export interface ActionCall {
+  action: Action;
+  label: string;
+  why: string;
+}
+
 export interface DeskAudit {
   symbol: string;
   composite: number | null;
   verdict: string;
+  call: ActionCall;
   pillars: Pillar[];
   provenanceNotes: string[];
 }

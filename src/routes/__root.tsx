@@ -15,7 +15,7 @@ export const Route = createRootRoute({
       { name: "theme-color", content: "#08090b" },
       {
         name: "description",
-        content: "Delayed quotes, unusual options, news, and a five-pillar desk. Not advice.",
+        content: "Buy, watch, wait, or avoid — delayed quotes and a simple desk call.",
       },
     ],
     links: [

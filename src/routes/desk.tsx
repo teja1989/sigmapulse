@@ -31,10 +31,8 @@ function DeskPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl tracking-tight">Five-pillar desk</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            Scores use only observed inputs. Unwired feeds stay blank instead of being estimated.
-          </p>
+          <h1 className="font-display text-2xl tracking-tight">Desk</h1>
+          <p className="mt-1 text-sm text-muted">One call. The rest is backup.</p>
         </div>
         <form onSubmit={onSubmit} className="flex gap-2">
           <input
@@ -52,7 +50,6 @@ function DeskPage() {
           <span className="font-mono text-lg">{data.quote.symbol}</span>
           <span className="font-mono text-2xl tabular-nums">{formatMoney(data.quote.price)}</span>
           <SignedPct value={data.quote.changePct} />
-          <span className="text-xs text-subtle">{data.quote.provenance.label}</span>
         </div>
       )}
       {data.error && <p className="text-sm text-down">{data.error}</p>}
