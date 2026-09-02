@@ -18,6 +18,8 @@ function quote(closes: number[]): Quote {
     avgVolume: 1,
     high52: Math.max(...closes),
     low52: Math.min(...closes),
+    marketCap: null,
+    cap: null,
     marketState: "REGULAR",
     sparkline: closes,
     closes,
@@ -65,6 +67,8 @@ test("rising unstretched series is Buy", () => {
   q.changePct = 0.3;
   const call = decideAction(q);
   assert.equal(call.action, "buy", call.why);
+  assert.ok(call.reasons.length >= 3, "buy should list the checks");
+  assert.ok(call.reasons.some((r) => /trend is up/i.test(r)));
 });
 
 test("hard downtrend is Avoid", () => {
@@ -75,6 +79,7 @@ test("hard downtrend is Avoid", () => {
   q.changePct = -0.4;
   const call = decideAction(q);
   assert.equal(call.action, "avoid", call.why);
+  assert.ok(call.reasons.some((r) => /trend is down/i.test(r)));
 });
 
 test("short history is Wait", () => {

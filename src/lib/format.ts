@@ -27,6 +27,21 @@ export function formatIv(n: number | null | undefined): string {
   return `${(n * 100).toFixed(1)}%`;
 }
 
+export function formatCap(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n) || n <= 0) return "n/a";
+  if (n >= 1_000_000_000_000) return `$${(n / 1_000_000_000_000).toFixed(1)}T`;
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(0)}M`;
+  return `$${Math.round(n).toLocaleString("en-US")}`;
+}
+
+export function capLabel(cap: "small" | "mid" | "large" | null | undefined): string {
+  if (cap === "small") return "Small";
+  if (cap === "mid") return "Mid";
+  if (cap === "large") return "Large";
+  return "—";
+}
+
 export function shortTime(iso: string | null | undefined): string {
   if (!iso) return "";
   const d = new Date(iso);
