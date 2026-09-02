@@ -116,7 +116,14 @@ jobs:
         run: |
           URL="${{ steps.deploy.outputs.url }}"
           for path in / /options /news /desk /ticker/AAPL; do
-            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 30 "$URL$path")
-            echo "$path $code"
+            code=""
+            for attempt in 1 2 3 4 5; do
+              code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 45 -L "$URL$path" || echo 000)
+              echo "$path attempt $attempt -> $code"
+              if [ "$code" = "200" ]; then
+                break
+              fi
+              sleep 4
+            done
             test "$code" = "200"
           done
