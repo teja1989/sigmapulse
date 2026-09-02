@@ -1,4 +1,5 @@
 import { fetchJson, yahooHosts } from "./http";
+import { capFromMarketCap } from "./sectors";
 import type { NewsItem, OptionContract, OptionSnapshot, Provenance, Quote } from "./types";
 
 interface YahooChart {
@@ -112,6 +113,8 @@ export async function fetchQuote(symbolRaw: string, range = "6mo"): Promise<Quot
     avgVolume: meta.averageDailyVolume10Day ?? null,
     high52: meta.fiftyTwoWeekHigh ?? null,
     low52: meta.fiftyTwoWeekLow ?? null,
+    marketCap: null,
+    cap: null,
     marketState: meta.marketState || "UNKNOWN",
     sparkline: closes.slice(-30),
     closes,
@@ -238,6 +241,29 @@ export async function fetchNews(query = "US stocks"): Promise<NewsItem[]> {
     }));
 }
 
+interface YahooQuoteResponse {
+  quoteResponse?: {
+    result?: Array<{ symbol?: string; marketCap?: number }>;
+  };
+}
+
+export async function fetchMarketCaps(symbols: readonly string[]): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (!symbols.length) return map;
+  const unique = [...new Set(symbols.map((s) => s.toUpperCase()))];
+  const data = await fetchJson<YahooQuoteResponse>(
+    yahooHosts(`/v7/finance/quote?symbols=${encodeURIComponent(unique.join(","))}`),
+    30_000,
+  );
+  for (const row of data?.quoteResponse?.result ?? []) {
+    const symbol = row.symbol?.toUpperCase();
+    if (symbol && typeof row.marketCap === "number" && row.marketCap > 0) {
+      map.set(symbol, row.marketCap);
+    }
+  }
+  return map;
+}
+
 export async function fetchQuotes(symbols: readonly string[]): Promise<Quote[]> {
   const out: Quote[] = [];
   const batch = 4;
@@ -245,6 +271,11 @@ export async function fetchQuotes(symbols: readonly string[]): Promise<Quote[]> 
     const slice = symbols.slice(i, i + batch);
     const rows = await Promise.all(slice.map((s) => fetchQuote(s, "3mo")));
     for (const row of rows) if (row) out.push(row);
+  }
+  const caps = await fetchMarketCaps(out.map((q) => q.symbol));
+  for (const q of out) {
+    q.marketCap = caps.get(q.symbol) ?? null;
+    q.cap = capFromMarketCap(q.marketCap);
   }
   return out;
 }

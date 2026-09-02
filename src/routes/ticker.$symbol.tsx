@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { CallReason } from "@/components/CallReason";
 import { NewsList } from "@/components/NewsList";
 import { OptionsTable } from "@/components/OptionsTable";
 import { PayoffLab } from "@/components/PayoffLab";
@@ -29,7 +30,11 @@ function TickerPage() {
         <div>
           <h1 className="font-display text-3xl tracking-tight">{symbol.toUpperCase()}</h1>
           {quote && <p className="text-sm text-muted">{quote.name}</p>}
-          {call && <p className="mt-2 text-sm text-muted">{call.why}</p>}
+          {call && (
+            <div className="mt-3 max-w-xl">
+              <CallReason call={call} />
+            </div>
+          )}
         </div>
         {quote && (
           <div className="text-right">

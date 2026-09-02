@@ -190,6 +190,43 @@ export function scoreSafety(options: OptionSnapshot | null): Pillar {
   };
 }
 
+function trendWord(up: boolean, down: boolean): "up" | "down" | "flat" {
+  if (up) return "up";
+  if (down) return "down";
+  return "flat";
+}
+
+function rsiWord(rsi: number): string {
+  if (rsi >= 75) return `RSI ${rsi.toFixed(0)} — overbought.`;
+  if (rsi <= 30) return `RSI ${rsi.toFixed(0)} — oversold.`;
+  if (rsi >= 60) return `RSI ${rsi.toFixed(0)} — firm, not blown off.`;
+  if (rsi <= 40) return `RSI ${rsi.toFixed(0)} — soft, not washed out.`;
+  return `RSI ${rsi.toFixed(0)} — mid-range.`;
+}
+
+function rangeWord(rangePct: number | null): string {
+  if (rangePct == null) return "52-week range is missing.";
+  if (rangePct >= 92) return `Price is ${rangePct.toFixed(0)}% of the 52-week range — stretched.`;
+  if (rangePct <= 12) return `Price is ${rangePct.toFixed(0)}% of the 52-week range — near the lows.`;
+  return `Price is ${rangePct.toFixed(0)}% of the 52-week range — not stretched.`;
+}
+
+function dayWord(changePct: number): string {
+  if (changePct <= -2.5) return `Today ${changePct.toFixed(1)}% — selling.`;
+  if (changePct >= 2.5) return `Today +${changePct.toFixed(1)}% — buying.`;
+  if (changePct >= 0) return `Today ${changePct.toFixed(1)}% — holding up.`;
+  return `Today ${changePct.toFixed(1)}% — a quiet red day.`;
+}
+
+function makeCall(
+  action: ActionCall["action"],
+  why: string,
+  reasons: string[],
+): ActionCall {
+  const labels = { buy: "Buy", watch: "Watch", wait: "Wait", avoid: "Avoid" } as const;
+  return { action, label: labels[action], why, reasons };
+}
+
 export function decideAction(quote: Quote, options?: OptionSnapshot | null): ActionCall {
   const rsi = rsi14(quote.closes);
   const e20 = ema(quote.closes, 20);
@@ -203,7 +240,10 @@ export function decideAction(quote: Quote, options?: OptionSnapshot | null): Act
   const iv = options?.atmIv ?? null;
 
   if (quote.closes.length < 20 || e20 == null || e50 == null || rsi == null) {
-    return { action: "wait", label: "Wait", why: "Not enough tape yet." };
+    return makeCall("wait", "Not enough daily history to take a side.", [
+      "Need about 50 sessions for a 20/50-day trend.",
+      "Without that, a Buy or Avoid would just be a guess.",
+    ]);
   }
 
   const up = e20 > e50;
@@ -214,38 +254,57 @@ export function decideAction(quote: Quote, options?: OptionSnapshot | null): Act
   const cold = rsi <= 30;
   const dump = quote.changePct <= -2.5;
   const richVol = iv != null && iv >= 0.55;
+  const trend = trendWord(up, down);
+
+  const facts = [
+    trend === "up"
+      ? "20-day average is above the 50-day — trend is up."
+      : trend === "down"
+        ? "20-day average is below the 50-day — trend is down."
+        : "20-day and 50-day averages are flat — no trend.",
+    rsiWord(rsi),
+    rangeWord(rangePct),
+    dayWord(quote.changePct),
+  ];
+  if (iv != null) {
+    facts.push(
+      richVol
+        ? `ATM options IV ${(iv * 100).toFixed(0)}% — expensive.`
+        : `ATM options IV ${(iv * 100).toFixed(0)}%.`,
+    );
+  }
 
   if (down && dump) {
-    return { action: "avoid", label: "Avoid", why: "Trend and today both point down." };
+    return makeCall("avoid", "Trend is down and today is selling. Don't catch this.", facts);
   }
   if (down && !cold) {
-    return { action: "avoid", label: "Avoid", why: "Trend is down." };
+    return makeCall("avoid", "Trend is down and it isn't washed out. Stand aside.", facts);
   }
   if (down && cold) {
-    return { action: "watch", label: "Watch", why: "Washed out. Wait for a turn." };
+    return makeCall("watch", "Downtrend, but it's washed out. Wait for a turn, don't short the low.", facts);
   }
   if (up && stretched && hot) {
-    return { action: "wait", label: "Wait", why: "Too extended. Let it cool." };
+    return makeCall("wait", "Uptrend, but it's too extended to pay up here.", facts);
   }
   if (up && hot) {
-    return { action: "watch", label: "Watch", why: "Hot. Add it, don’t chase." };
+    return makeCall("watch", "Uptrend, but RSI is hot. Add to the list — don't chase.", facts);
   }
   if (up && richVol) {
-    return { action: "watch", label: "Watch", why: "Trend is fine. Options are expensive." };
+    return makeCall("watch", "Trend is fine. Options are rich, so don't pay up for premium.", facts);
   }
   if (up && rsi >= 40 && rsi <= 74 && !stretched) {
-    return { action: "buy", label: "Buy", why: "Uptrend and not stretched." };
+    return makeCall("buy", "Uptrend, momentum is healthy, and it isn't stretched.", facts);
   }
   if (up && washed) {
-    return { action: "watch", label: "Watch", why: "Uptrend, sitting near the lows." };
+    return makeCall("watch", "Uptrend, but price is sitting near the lows. Wait for it to hold.", facts);
   }
   if (up) {
-    return { action: "watch", label: "Watch", why: "Uptrend, but the entry isn’t clean." };
+    return makeCall("watch", "Trend is up, but the entry isn't clean yet.", facts);
   }
   if (cold) {
-    return { action: "watch", label: "Watch", why: "Oversold. Wait for a bounce." };
+    return makeCall("watch", "No trend, but it's oversold. Wait for a bounce to confirm.", facts);
   }
-  return { action: "wait", label: "Wait", why: "Sideways. No reason to act." };
+  return makeCall("wait", "Sideways tape. No reason to act today.", facts);
 }
 
 export function auditDesk(

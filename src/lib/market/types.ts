@@ -24,6 +24,8 @@ export interface Quote {
   avgVolume: number | null;
   high52: number | null;
   low52: number | null;
+  marketCap: number | null;
+  cap: "small" | "mid" | "large" | null;
   marketState: string;
   sparkline: number[];
   closes: number[];
@@ -84,6 +86,7 @@ export interface ActionCall {
   action: Action;
   label: string;
   why: string;
+  reasons: string[];
 }
 
 export interface DeskAudit {

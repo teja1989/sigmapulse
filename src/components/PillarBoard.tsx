@@ -1,4 +1,5 @@
 import type { DeskAudit } from "@/lib/market/types";
+import { CallReason } from "./CallReason";
 import { SignalChip } from "./SignalChip";
 
 export function PillarBoard({ desk }: { desk: DeskAudit | null }) {
@@ -13,9 +14,9 @@ export function PillarBoard({ desk }: { desk: DeskAudit | null }) {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-surface p-5">
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-start gap-4">
           <SignalChip call={desk.call} size="lg" />
-          <p className="max-w-xl text-sm text-muted">{desk.call.why}</p>
+          <CallReason call={desk.call} />
         </div>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
