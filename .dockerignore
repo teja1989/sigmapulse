@@ -1,9 +1,10 @@
-Dockerfile
-.dockerignore
 node_modules
-npm-debug.log
-README.md
-.next
+.output
 .git
 .github
-.env*.local
+screenshots
+artifacts
+*.md
+AGENTS.md
+.grok/skills
+.grok/references
