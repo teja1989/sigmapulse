@@ -82,6 +82,7 @@ export async function fetchQuote(symbolRaw: string, range = "6mo"): Promise<Quot
   if (!symbol) return null;
   const data = await fetchJson<YahooChart>(
     yahooHosts(`/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${range}`),
+    45_000,
   );
   const result = data?.chart?.result?.[0];
   const meta = result?.meta;
@@ -265,18 +266,28 @@ export async function fetchMarketCaps(symbols: readonly string[]): Promise<Map<s
 }
 
 export async function fetchQuotes(symbols: readonly string[]): Promise<Quote[]> {
-  const out: Quote[] = [];
-  const batch = 4;
-  for (let i = 0; i < symbols.length; i += batch) {
-    const slice = symbols.slice(i, i + batch);
-    const rows = await Promise.all(slice.map((s) => fetchQuote(s, "3mo")));
-    for (const row of rows) if (row) out.push(row);
-  }
+  const unique = [...new Set(symbols.map((s) => s.toUpperCase()).filter(Boolean))];
+  const rows = await mapPool(unique, 10, (s) => fetchQuote(s, "3mo"));
+  const out = rows.filter((row): row is Quote => Boolean(row));
   const caps = await fetchMarketCaps(out.map((q) => q.symbol));
   for (const q of out) {
     q.marketCap = caps.get(q.symbol) ?? null;
     q.cap = capFromMarketCap(q.marketCap);
   }
+  return out;
+}
+
+async function mapPool<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]);
+    }
+  }
+  const n = Math.min(Math.max(limit, 1), items.length || 1);
+  await Promise.all(Array.from({ length: n }, () => worker()));
   return out;
 }
 

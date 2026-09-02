@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CatalystQueue } from "@/components/CatalystQueue";
 import { IndexTape } from "@/components/IndexTape";
+import { JumpBoard } from "@/components/JumpBoard";
+import { MissingBits } from "@/components/MissingBits";
 import { PulseBoard } from "@/components/PulseBoard";
 import { SectorMenu } from "@/components/SectorMenu";
 import { loadPulse } from "@/lib/market/api";
@@ -20,6 +22,7 @@ export const Route = createFileRoute("/")({
     cap: search.cap,
   }),
   loader: ({ deps }) => loadPulse({ data: { sector: deps.sector, cap: deps.cap } }),
+  pendingMs: 8_000,
   component: Home,
 });
 
@@ -32,12 +35,14 @@ function Home() {
         <h1 className="font-display text-2xl tracking-tight">{sector.label}</h1>
         <p className="mt-1 text-sm text-muted">{data.blurb}</p>
       </div>
-      <SectorMenu sector={data.sector} cap={data.cap} counts={data.counts} />
+      <SectorMenu counts={data.counts} />
       <IndexTape quotes={data.indexes} />
+      <JumpBoard names={data.names} />
       <PulseBoard names={data.names} showCap={data.sector !== "tape"} />
       {data.sector !== "tape" && (
         <CatalystQueue title={data.queueTitle} items={data.queue} news={data.news} />
       )}
+      <MissingBits />
     </div>
   );
 }

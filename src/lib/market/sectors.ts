@@ -240,6 +240,5 @@ export function getSector(id: string | undefined): SectorDef {
 
 export function filterNews<T extends { title: string }>(items: T[], re?: RegExp): T[] {
   if (!re) return items;
-  const hit = items.filter((t) => re.test(t.title));
-  return hit.length ? hit : items;
+  return items.filter((t) => re.test(t.title));
 }

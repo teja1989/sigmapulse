@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { PillarBoard } from "@/components/PillarBoard";
+import { MissingBits } from "@/components/MissingBits";
+import { PotentialCard } from "@/components/PotentialCard";
 import { loadTicker } from "@/lib/market/api";
 import { formatMoney } from "@/lib/format";
 import { SignedPct } from "@/components/Signed";
@@ -14,6 +16,7 @@ export const Route = createFileRoute("/desk")({
   },
   loaderDeps: ({ search }) => ({ symbol: search.symbol ?? "AAPL" }),
   loader: ({ deps }) => loadTicker({ data: { symbol: deps.symbol } }),
+  pendingMs: 8_000,
   component: DeskPage,
 });
 
@@ -54,6 +57,8 @@ function DeskPage() {
         </div>
       )}
       {data.error && <p className="text-sm text-down">{data.error}</p>}
+      {data.setup && <PotentialCard setup={data.setup} />}
+      <MissingBits />
       <PillarBoard desk={data.desk} />
     </div>
   );

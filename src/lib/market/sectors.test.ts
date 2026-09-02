@@ -51,3 +51,9 @@ test("FDA filter keeps matching headlines", () => {
   assert.equal(hit.length, 1);
   assert.match(hit[0].title, /FDA/);
 });
+
+test("FDA filter does not dump unrelated tape when nothing matches", () => {
+  const hit = filterNews([{ title: "Uber cuts jobs" }], SECTORS.bio.newsFilter);
+  assert.equal(hit.length, 0);
+});
+

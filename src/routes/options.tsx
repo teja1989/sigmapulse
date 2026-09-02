@@ -13,6 +13,7 @@ export const Route = createFileRoute("/options")({
   },
   loaderDeps: ({ search }) => ({ symbol: search.symbol ?? "SPY" }),
   loader: ({ deps }) => loadOptions({ data: { symbol: deps.symbol } }),
+  pendingMs: 8_000,
   component: OptionsPage,
 });
 
