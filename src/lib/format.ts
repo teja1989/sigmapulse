@@ -54,3 +54,29 @@ export function shortTime(iso: string | null | undefined): string {
     timeZone: "America/New_York",
   });
 }
+
+export function printTime(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  });
+}
+
+export function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const sec = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (sec < 45) return "just now";
+  if (sec < 3600) return `${Math.round(sec / 60)}m ago`;
+  if (sec < 86400) return `${Math.round(sec / 3600)}h ago`;
+  const days = Math.round(sec / 86400);
+  return `${days}d ago`;
+}

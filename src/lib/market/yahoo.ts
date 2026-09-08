@@ -1,6 +1,6 @@
 import { fetchJson, yahooHosts } from "./http";
-import { capFromMarketCap } from "./sectors";
-import type { NewsItem, OptionContract, OptionSnapshot, Provenance, Quote } from "./types";
+import { capFromMarketCap, newsForTicker } from "./sectors";
+import type { LivePrint, NewsItem, OptionContract, OptionSnapshot, Provenance, Quote, Session } from "./types";
 
 interface YahooChart {
   chart?: {
@@ -20,6 +20,11 @@ interface YahooChart {
         fiftyTwoWeekLow?: number;
         marketState?: string;
         regularMarketTime?: number;
+        currentTradingPeriod?: {
+          pre?: { start?: number; end?: number };
+          regular?: { start?: number; end?: number };
+          post?: { start?: number; end?: number };
+        };
       };
       timestamp?: number[];
       indicators?: { quote?: Array<{ close?: Array<number | null>; volume?: Array<number | null> }> };
@@ -77,6 +82,42 @@ function normalizeSymbol(raw: string): string {
   return raw.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").slice(0, 12);
 }
 
+const SESSION_LABEL: Record<Session, string> = {
+  pre: "Pre-market",
+  open: "Open",
+  post: "After hours",
+  closed: "Closed",
+};
+
+function sessionFromMeta(
+  period:
+    | {
+        pre?: { start?: number; end?: number };
+        regular?: { start?: number; end?: number };
+        post?: { start?: number; end?: number };
+      }
+    | undefined,
+  nowSec: number,
+): Session {
+  if (!period) return "closed";
+  if (
+    period.regular?.start != null &&
+    period.regular.end != null &&
+    nowSec >= period.regular.start &&
+    nowSec < period.regular.end
+  ) {
+    return "open";
+  }
+  if (period.pre?.start != null && period.pre.end != null && nowSec >= period.pre.start && nowSec < period.pre.end) {
+    return "pre";
+  }
+  if (period.post?.start != null && period.post.end != null && nowSec >= period.post.start && nowSec < period.post.end) {
+    return "post";
+  }
+  return "closed";
+}
+
+
 export async function fetchQuote(symbolRaw: string, range = "6mo"): Promise<Quote | null> {
   const symbol = normalizeSymbol(symbolRaw);
   if (!symbol) return null;
@@ -100,6 +141,8 @@ export async function fetchQuote(symbolRaw: string, range = "6mo"): Promise<Quot
   const asOf = meta.regularMarketTime
     ? new Date(meta.regularMarketTime * 1000).toISOString()
     : nowIso();
+  const nowSec = Date.now() / 1000;
+  const session = sessionFromMeta(meta.currentTradingPeriod, nowSec);
 
   return {
     symbol,
@@ -116,14 +159,68 @@ export async function fetchQuote(symbolRaw: string, range = "6mo"): Promise<Quot
     low52: meta.fiftyTwoWeekLow ?? null,
     marketCap: null,
     cap: null,
-    marketState: meta.marketState || "UNKNOWN",
+    marketState: session.toUpperCase(),
     sparkline: closes.slice(-30),
     closes,
     timestamps,
     provenance: {
       kind: "yahoo-delayed",
-      label: "Yahoo Finance delayed quote",
+      label: "Yahoo Finance last print",
       asOf,
+    },
+  };
+}
+
+export async function fetchIntraday(symbolRaw: string): Promise<LivePrint | null> {
+  const symbol = normalizeSymbol(symbolRaw);
+  if (!symbol) return null;
+  const data = await fetchJson<YahooChart>(
+    yahooHosts(
+      `/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d&includePrePost=true`,
+    ),
+    8_000,
+    6_000,
+  );
+  const result = data?.chart?.result?.[0];
+  const meta = result?.meta;
+  if (!result || !meta) return null;
+  const prevClose = Number(meta.chartPreviousClose ?? meta.previousClose ?? NaN);
+  const rawCloses = result.indicators?.quote?.[0]?.close ?? [];
+  const timestamps = result.timestamp ?? [];
+  const spark: number[] = [];
+  const sparkTs: number[] = [];
+  for (let i = 0; i < rawCloses.length; i++) {
+    const n = rawCloses[i];
+    if (typeof n === "number" && Number.isFinite(n)) {
+      spark.push(n);
+      sparkTs.push(timestamps[i] ?? 0);
+    }
+  }
+  const lastPx = spark.length ? spark[spark.length - 1] : Number(meta.regularMarketPrice ?? NaN);
+  if (!Number.isFinite(lastPx) || !Number.isFinite(prevClose)) return null;
+  const price = Number(lastPx.toFixed(4));
+  const change = price - prevClose;
+  const nowSec = Date.now() / 1000;
+  const session = sessionFromMeta(meta.currentTradingPeriod, nowSec);
+  const asOfUnix = sparkTs.length ? sparkTs[sparkTs.length - 1] : (meta.regularMarketTime ?? Math.floor(nowSec));
+  const delayedPrint = session === "open" && nowSec - asOfUnix > 20 * 60;
+  return {
+    symbol,
+    price,
+    prevClose: Number(prevClose.toFixed(4)),
+    change: Number(change.toFixed(4)),
+    changePct: Number((prevClose ? (change / prevClose) * 100 : 0).toFixed(3)),
+    asOf: new Date(asOfUnix * 1000).toISOString(),
+    asOfUnix,
+    session,
+    sessionLabel: SESSION_LABEL[session],
+    delayed: delayedPrint,
+    sparkline: spark.slice(-90),
+    timestamps: sparkTs.slice(-90),
+    provenance: {
+      kind: "yahoo-delayed",
+      label: delayedPrint ? "Yahoo last print · delayed" : "Yahoo last print",
+      asOf: new Date(asOfUnix * 1000).toISOString(),
     },
   };
 }
@@ -166,7 +263,7 @@ export async function fetchOptions(symbolRaw: string): Promise<OptionSnapshot | 
   const data = await fetchJson<YahooOptions>(
     yahooHosts(`/v7/finance/options/${encodeURIComponent(symbol)}`),
     30_000,
-    8_000,
+    4_000,
   );
   const chain = data?.optionChain?.result?.[0];
   if (!chain) return null;
@@ -242,6 +339,13 @@ export async function fetchNews(query = "US stocks"): Promise<NewsItem[]> {
     }));
 }
 
+export async function fetchTickerNews(symbolRaw: string, name?: string): Promise<NewsItem[]> {
+  const symbol = normalizeSymbol(symbolRaw);
+  if (!symbol) return [];
+  const items = await fetchNews(symbol);
+  return newsForTicker(items, symbol, name);
+}
+
 interface YahooQuoteResponse {
   quoteResponse?: {
     result?: Array<{ symbol?: string; marketCap?: number }>;
@@ -255,6 +359,7 @@ export async function fetchMarketCaps(symbols: readonly string[]): Promise<Map<s
   const data = await fetchJson<YahooQuoteResponse>(
     yahooHosts(`/v7/finance/quote?symbols=${encodeURIComponent(unique.join(","))}`),
     30_000,
+    4_000,
   );
   for (const row of data?.quoteResponse?.result ?? []) {
     const symbol = row.symbol?.toUpperCase();

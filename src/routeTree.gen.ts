@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BookRouteImport } from './routes/book'
 import { Route as DeskRouteImport } from './routes/desk'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as OptionsRouteImport } from './routes/options'
@@ -18,6 +19,11 @@ import { Route as TickerSymbolRouteImport } from './routes/ticker.$symbol'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BookRoute = BookRouteImport.update({
+  id: '/book',
+  path: '/book',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeskRoute = DeskRouteImport.update({
@@ -43,6 +49,7 @@ const TickerSymbolRoute = TickerSymbolRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
   '/desk': typeof DeskRoute
   '/news': typeof NewsRoute
   '/options': typeof OptionsRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
   '/desk': typeof DeskRoute
   '/news': typeof NewsRoute
   '/options': typeof OptionsRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/book': typeof BookRoute
   '/desk': typeof DeskRoute
   '/news': typeof NewsRoute
   '/options': typeof OptionsRoute
@@ -65,14 +74,22 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/desk' | '/news' | '/options' | '/ticker/$symbol'
+  fullPaths: '/' | '/book' | '/desk' | '/news' | '/options' | '/ticker/$symbol'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/desk' | '/news' | '/options' | '/ticker/$symbol'
-  id: '__root__' | '/' | '/desk' | '/news' | '/options' | '/ticker/$symbol'
+  to: '/' | '/book' | '/desk' | '/news' | '/options' | '/ticker/$symbol'
+  id:
+    | '__root__'
+    | '/'
+    | '/book'
+    | '/desk'
+    | '/news'
+    | '/options'
+    | '/ticker/$symbol'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BookRoute: typeof BookRoute
   DeskRoute: typeof DeskRoute
   NewsRoute: typeof NewsRoute
   OptionsRoute: typeof OptionsRoute
@@ -86,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book': {
+      id: '/book'
+      path: '/book'
+      fullPath: '/book'
+      preLoaderRoute: typeof BookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/desk': {
@@ -121,6 +145,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BookRoute: BookRoute,
   DeskRoute: DeskRoute,
   NewsRoute: NewsRoute,
   OptionsRoute: OptionsRoute,

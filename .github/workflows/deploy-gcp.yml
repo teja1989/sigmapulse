@@ -115,7 +115,7 @@ jobs:
       - name: Smoke routes
         run: |
           URL="${{ steps.deploy.outputs.url }}"
-          for path in / /options /news /desk /ticker/AAPL; do
+          for path in / /book /options /news /desk /ticker/AAPL; do
             code=""
             for attempt in 1 2 3 4 5; do
               code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 45 -L "$URL$path" || echo 000)

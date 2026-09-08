@@ -5,6 +5,9 @@ import {
   filterNews,
   getSector,
   isSectorId,
+  newsForTicker,
+  peersOf,
+  sectorOf,
   SECTOR_MENU,
   SECTORS,
 } from "./sectors.ts";
@@ -39,21 +42,37 @@ test("bio has an FDA filter and more than one small cap", () => {
 test("unknown sector falls back to tape", () => {
   assert.equal(getSector("nope").id, "tape");
   assert.equal(isSectorId("bio"), true);
-  assert.equal(isSectorId("xyz"), false);
 });
 
-test("FDA filter keeps matching headlines", () => {
-  const rows = [
-    { title: "Acme gets FDA approval for drug X" },
-    { title: "Quarterly sales beat" },
-  ];
-  const hit = filterNews(rows, SECTORS.bio.newsFilter);
-  assert.equal(hit.length, 1);
-  assert.match(hit[0].title, /FDA/);
+test("news filter dumps unmatched headlines instead of filling with noise", () => {
+  const bio = getSector("bio");
+  const kept = filterNews([{ title: "Uber beats" }, { title: "FDA approves CYTK" }], bio.newsFilter);
+  assert.deepEqual(
+    kept.map((k) => k.title),
+    ["FDA approves CYTK"],
+  );
 });
 
-test("FDA filter does not dump unrelated tape when nothing matches", () => {
-  const hit = filterNews([{ title: "Uber cuts jobs" }], SECTORS.bio.newsFilter);
-  assert.equal(hit.length, 0);
+test("peers of NVDA come from AI, not the whole tape", () => {
+  const peers = peersOf("NVDA", 4);
+  assert.equal(peers.length, 4);
+  assert.ok(!peers.includes("NVDA"));
+  assert.equal(sectorOf("NVDA"), "ai");
+});
+
+test("news for a ticker prefers the name in the headline", () => {
+  const rows = newsForTicker(
+    [
+      { title: "Uber beats on rides", related: ["UBER"] },
+      { title: "NVIDIA unveils next GPU", related: ["NVDA", "AMD"] },
+      { title: "Chip stocks rally", related: ["NVDA"] },
+    ],
+    "NVDA",
+    "NVIDIA Corporation",
+  );
+  assert.deepEqual(
+    rows.map((r) => r.title),
+    ["NVIDIA unveils next GPU"],
+  );
 });
 

@@ -65,7 +65,7 @@ export const SECTORS: Record<SectorId, SectorDef> = {
   bio: {
     id: "bio",
     label: "Bio",
-    blurb: "Large, mid, and small cap. Queue is FDA / data / label — not a live FDA feed.",
+    blurb: "Large, mid, and small cap. Dates are Nasdaq earnings plus FDA only when a release or headline names one.",
     queueTitle: "FDA & data queue",
     newsQuery: "FDA PDUFA biotech approval",
     newsFilter: /\b(FDA|PDUFA|AdCom|CRL|BLA|NDA|approval|Phase\s*3|Phase\s*III)\b/i,
@@ -242,3 +242,36 @@ export function filterNews<T extends { title: string }>(items: T[], re?: RegExp)
   if (!re) return items;
   return items.filter((t) => re.test(t.title));
 }
+
+export function sectorOf(symbol: string): SectorId {
+  const s = symbol.toUpperCase();
+  for (const id of SECTOR_MENU) {
+    if (id === "tape") continue;
+    if (SECTORS[id].names.some((n) => n.symbol === s)) return id;
+  }
+  if (SECTORS.tape.names.some((n) => n.symbol === s)) return "tape";
+  return "tape";
+}
+
+export function peersOf(symbol: string, n = 4): string[] {
+  const s = symbol.toUpperCase();
+  const sector = SECTORS[sectorOf(s)];
+  return sector.names.filter((row) => row.symbol !== s).slice(0, n).map((row) => row.symbol);
+}
+
+export function newsForTicker<T extends { title: string; related: string[] }>(
+  items: T[],
+  symbol: string,
+  name?: string,
+): T[] {
+  const sym = symbol.toUpperCase();
+  const token = (name ?? "").replace(/,.*/, "").split(/\s+/)[0] ?? "";
+  const titled = items.filter((row) => {
+    if (new RegExp(`\\b${sym}\\b`, "i").test(row.title)) return true;
+    if (token.length >= 4 && row.title.toLowerCase().includes(token.toLowerCase())) return true;
+    return false;
+  });
+  if (titled.length) return titled;
+  return items.filter((row) => row.related.some((t) => t.toUpperCase() === sym));
+}
+

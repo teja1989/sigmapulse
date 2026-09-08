@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { CallReason } from "./CallReason";
+import { ConfidenceMark } from "./ConfidenceCard";
+import { DateMark } from "./DateCard";
+import { MarkChip } from "./MarkCard";
 import { SetupChip } from "./PotentialCard";
 import { SignedPct } from "./Signed";
 import { SignalChip } from "./SignalChip";
@@ -88,7 +91,7 @@ export function PulseBoard({ names, showCap = false }: { names: PulseName[]; sho
         ))}
       </div>
       <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface lg:block">
-        <table className="w-full min-w-[860px] text-left text-sm">
+        <table className="w-full min-w-[920px] text-left text-sm">
           <thead className="border-b border-border text-xs uppercase tracking-wider text-subtle">
             <tr>
               <th className="px-4 py-3 font-medium">Call</th>
@@ -96,13 +99,14 @@ export function PulseBoard({ names, showCap = false }: { names: PulseName[]; sho
               <th className="px-4 py-3 font-medium">Last</th>
               <th className="px-4 py-3 font-medium">Change</th>
               <th className="px-4 py-3 font-medium">Setup</th>
+              <th className="px-4 py-3 font-medium">Conf</th>
               {showCap && <th className="px-4 py-3 font-medium">Cap</th>}
               <th className="px-4 py-3 font-medium">Volume</th>
               <th className="px-4 py-3 font-medium">Why this call</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ quote, call, cap, tag, setup: s }) => (
+            {rows.map(({ quote, call, cap, tag, setup: s, confidence, date, mark }) => (
               <tr key={quote.symbol} className="border-b border-border/70 last:border-0">
                 <td className="px-4 py-3">
                   <SignalChip call={call} size="sm" />
@@ -130,6 +134,16 @@ export function PulseBoard({ names, showCap = false }: { names: PulseName[]; sho
                     {s.rr != null ? ` · ${s.rr}R` : ""}
                   </div>
                 </td>
+                <td className="px-4 py-3">
+                  <ConfidenceMark confidence={confidence} />
+                  <div className="mt-1 text-xs text-subtle">RSI {confidence.rsi.label}</div>
+                  <div className="mt-1">
+                    <DateMark date={date} />
+                  </div>
+                  <div className="mt-1">
+                    <MarkChip mark={mark} />
+                  </div>
+                </td>
                 {showCap && (
                   <td className="px-4 py-3">
                     <div className="text-xs text-muted">{capLabel(cap)}</div>
@@ -150,7 +164,7 @@ export function PulseBoard({ names, showCap = false }: { names: PulseName[]; sho
 }
 
 function PulseCard({ row, showCap }: { row: PulseName; showCap: boolean }) {
-  const { quote, call, cap, tag, setup } = row;
+  const { quote, call, cap, tag, setup, confidence } = row;
   return (
     <Link
       to="/ticker/$symbol"
@@ -173,6 +187,9 @@ function PulseCard({ row, showCap }: { row: PulseName; showCap: boolean }) {
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <SignalChip call={call} size="sm" />
         <SetupChip setup={setup} />
+        <ConfidenceMark confidence={confidence} />
+        <DateMark date={row.date} />
+        <MarkChip mark={row.mark} />
         <span className="font-mono text-xs text-subtle">
           {setup.gainPct == null ? "room n/a" : `Room ${formatPct(setup.gainPct, 0)}`}
           {setup.rr != null ? ` · ${setup.rr}R` : ""}
