@@ -6,13 +6,17 @@ import {
   barsFromSeries,
   canStamp,
   closeMark,
+  draftFromQuote,
   draftMark,
+  etHour,
   outcomeSentence,
   pathAfter,
   pctChange,
   planExit,
   regimeOf,
   reportCardCopy,
+  sessionDateFromBars,
+  stampSessionReady,
   type HouseMark,
 } from "./book.ts";
 
@@ -377,4 +381,36 @@ test("report card refuses a hit rate under 20 closed Buys", () => {
 test("barsFromSeries drops non-finite closes", () => {
   const bars = barsFromSeries([1, 2, 3], [10, Number.NaN, 12]);
   assert.equal(bars.closes.length, 2);
+});
+
+test("session date is the last bar, not the wall clock", () => {
+  const mondayClose = Date.parse("2026-09-07T16:00:00-04:00") / 1000;
+  const tuesdayNight = new Date("2026-09-08T00:55:00-04:00");
+  assert.equal(sessionDateFromBars([mondayClose], tuesdayNight), "2026-09-07");
+  const draft = draftFromQuote({
+    symbol: "AAPL",
+    price: 100,
+    closes: [100],
+    timestamps: [mondayClose],
+    high52: 120,
+    spyPrice: 500,
+    spyCloses: Array.from({ length: 30 }, (_, i) => 400 + i),
+    stance: "buy",
+    setup: "coil",
+    why: "Quiet.",
+    source: "auto",
+    now: tuesdayNight,
+  });
+  assert.ok(draft);
+  assert.equal(draft.sessionDate, "2026-09-07");
+});
+
+test("house only writes after the close, or for a finished prior session", () => {
+  const tuesdayMorning = new Date("2026-09-08T11:00:00-04:00");
+  const tuesdayEvening = new Date("2026-09-08T22:00:00-04:00");
+  assert.equal(etHour(tuesdayMorning) < 16, true);
+  assert.equal(stampSessionReady("2026-09-08", tuesdayMorning), false);
+  assert.equal(stampSessionReady("2026-09-08", tuesdayEvening), true);
+  assert.equal(stampSessionReady("2026-09-07", tuesdayMorning), true);
+  assert.equal(stampSessionReady("2026-09-09", tuesdayEvening), false);
 });

@@ -27,7 +27,7 @@ Agent standard: `.grok/skills/sigma-desk/SKILL.md`.
 3. **Radar** — Tape, Quiet, Date, Gap. English on each spoke.
 4. **Confidence** — RSI mood, trend, coil, history. Capped when tired or downtrend.
 5. **Date** — Next dated event if we have one. Fuse on the stamp.
-6. **Book** — Stamp with an exit. Close later. Paid / Failed / Expired.
+6. **Book** — House writes after the close (nightly job). Visitors read. Paid / Failed / Expired.
 
 ## House ledger
 

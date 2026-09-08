@@ -1,6 +1,3 @@
-import { useRouter } from "@tanstack/react-router";
-import { useState } from "react";
-import { stampTicker } from "@/lib/market/book-api";
 import type { HouseMark } from "@/lib/market/book";
 import { formatMoney } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -27,49 +24,17 @@ export function MarkChip({ mark }: { mark: HouseMark | null | undefined }) {
   );
 }
 
-export function MarkCard({
-  symbol,
-  marks,
-}: {
-  symbol: string;
-  marks: HouseMark[];
-}) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
+export function MarkCard({ marks }: { symbol?: string; marks: HouseMark[] }) {
   const open = marks.find((m) => m.status === "open");
   const last = marks.find((m) => m.status === "closed") ?? open;
 
-  async function onStamp() {
-    setBusy(true);
-    setMsg(null);
-    const res = await stampTicker({ data: { symbol } });
-    setBusy(false);
-    if (res.error) {
-      setMsg(res.error);
-      return;
-    }
-    setMsg(res.created ? "On the book." : "Already stamped today.");
-    await router.invalidate();
-  }
-
   return (
     <section className="rounded-xl border border-border bg-surface p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-subtle">The book</p>
-          <p className="mt-1 font-display text-2xl tracking-tight">
-            {open ? `Open ${open.stance}` : last ? `Last ${last.outcome}` : "No stamp yet"}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void onStamp()}
-          disabled={busy}
-          className="inline-flex h-11 items-center rounded-md border border-border bg-surface-2 px-4 text-sm font-medium text-fg transition-transform duration-(--motion-quick) active:scale-[0.98] disabled:opacity-50"
-        >
-          {busy ? "Stamping…" : "Stamp this call"}
-        </button>
+      <div>
+        <p className="text-xs uppercase tracking-wider text-subtle">The book</p>
+        <p className="mt-1 font-display text-2xl tracking-tight">
+          {open ? `Open ${open.stance}` : last ? `Last ${last.outcome}` : "Not on the book yet"}
+        </p>
       </div>
       {open && (
         <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -91,8 +56,10 @@ export function MarkCard({
           </div>
         </dl>
       )}
-      <p className="mt-3 text-sm leading-relaxed text-fg">{(open ?? last)?.sentence ?? "Stamp a call to write the exit now, not later."}</p>
-      {msg && <p className="mt-2 text-xs text-subtle">{msg}</p>}
+      <p className="mt-3 text-sm leading-relaxed text-fg">
+        {(open ?? last)?.sentence ??
+          "The house writes this after the close. Opening the ticker does not stamp a call."}
+      </p>
       {marks.filter((m) => m.status === "closed").slice(0, 3).length > 0 && (
         <ul className="mt-4 divide-y divide-border border-t border-border">
           {marks

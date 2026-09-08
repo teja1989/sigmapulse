@@ -42,7 +42,7 @@ function TickerPage() {
       {data.error && <p className="text-sm text-down">{data.error}</p>}
       <LiveTape symbol={symbol.toUpperCase()} initial={data.live} />
       {data.date && <DateCard date={data.date} />}
-      <MarkCard symbol={symbol.toUpperCase()} marks={data.marks} />
+      <MarkCard marks={data.marks} />
       {data.confidence && <ConfidenceCard confidence={data.confidence} />}
       {data.radar && <PillarRadar radar={data.radar} />}
       {call && (

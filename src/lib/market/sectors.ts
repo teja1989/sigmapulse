@@ -225,6 +225,20 @@ export const SECTOR_MENU: SectorId[] = [
   "defense",
 ];
 
+export function deskUniverse(): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const id of SECTOR_MENU) {
+    for (const row of SECTORS[id].names) {
+      const s = row.symbol.toUpperCase();
+      if (seen.has(s)) continue;
+      seen.add(s);
+      out.push(s);
+    }
+  }
+  return out;
+}
+
 export function isSectorId(v: unknown): v is SectorId {
   return typeof v === "string" && v in SECTORS;
 }

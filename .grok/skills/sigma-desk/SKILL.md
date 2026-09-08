@@ -35,7 +35,8 @@ Do **not** silently change these. A real rule change is a new `ENGINE_VERSION`
   ahead of SPY (SPY missing → dollars only, do not claim the market).
 - **Failed** = hit stop, **or** behind entry, **or** ahead of entry but behind SPY.
 - Score the **delayed daily close we had**, not the day's high/low.
-- One auto mark per ticker per ET session. Refresh is not a new call.
+- One auto mark per ticker per ET **session of the last daily bar**. Refresh is not a new call.
+- **Visitors do not stamp.** Pulse and ticker loads read + settle only. The house writes after the close (`runDeskSession`, GitHub cron `desk-session.yml`, or Book **Write tonight's book**).
 - Price ≤ 0 or non-finite → do not stamp.
 - Hit rate is **blank** until 20 closed Buys. Never invent one.
 
@@ -90,7 +91,7 @@ If a new edge appears, add it there first.
 ## UI
 
 - Book is a first-class nav item. `/book` must 200 in deploy smoke.
-- Stamp control is `h-11`. No emoji. No purple/gold.
+- No per-ticker stamp button. Nightly job is the writer.
 - Chart ticks mark entry (and exit when closed) on the 6-month series only.
 - Pulse/Jump may show `Open buy · 10d` — not a second scoring system.
 
