@@ -396,6 +396,33 @@ export function closeMark(mark: HouseMark, name: BarPath, spy: BarPath | null, n
   return next;
 }
 
+export function sessionDateFromBars(timestamps: number[], now = new Date()): string {
+  for (let i = timestamps.length - 1; i >= 0; i--) {
+    const t = timestamps[i];
+    if (Number.isFinite(t) && t > 0) return etYmd(new Date(t * 1000));
+  }
+  return etYmd(now);
+}
+
+export function etHour(now = new Date()): number {
+  const raw = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    hour: "numeric",
+    hour12: false,
+  }).format(now);
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isFinite(n)) return 0;
+  return n === 24 ? 0 : n;
+}
+
+/** After the close, or the last bar is already a finished session. Not during the day. */
+export function stampSessionReady(lastBarDate: string, now = new Date()): boolean {
+  const today = etYmd(now);
+  if (lastBarDate < today) return true;
+  if (lastBarDate > today) return false;
+  return etHour(now) >= 16;
+}
+
 export function draftFromQuote(opts: {
   symbol: string;
   price: number;
@@ -414,7 +441,7 @@ export function draftFromQuote(opts: {
   now?: Date;
 }): HouseMark | null {
   const now = opts.now ?? new Date();
-  const sessionDate = etYmd(now);
+  const sessionDate = sessionDateFromBars(opts.timestamps, now);
   const e20 = ema(opts.closes, 20);
   const atrPct = typicalDayPct(opts.closes);
   const roomPct =

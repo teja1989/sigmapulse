@@ -1,0 +1,41 @@
+name: Nightly desk session
+
+on:
+  schedule:
+    # Tue–Sat 02:00 UTC = Mon–Fri after the US close (21:00 EST / 22:00 EDT)
+    - cron: "0 2 * * 2-6"
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: quantum-pulsar
+  SERVICE_NAME: sigmapulse-app
+  REGION: us-central1
+
+jobs:
+  session:
+    name: Write tonight's book
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: POST /api/desk-session
+        env:
+          DESK_JOB_SECRET: ${{ secrets.DESK_JOB_SECRET }}
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region ${{ env.REGION }} --format='value(status.url)')
+          echo "POST $URL/api/desk-session"
+          curl -fsS -X POST --max-time 240 \
+            -H "x-desk-job: ${DESK_JOB_SECRET}" \
+            -H "content-type: application/json" \
+            "$URL/api/desk-session"

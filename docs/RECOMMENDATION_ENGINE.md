@@ -32,6 +32,24 @@ One object, version `desk-v4`:
 
 Watch / Wait / Avoid are **notes**, not trades. They expire. They are never paid or failed.
 
+## Who writes the book
+
+Visitors do **not** stamp. Opening Pulse or a ticker only **reads** the house mark
+and may **settle** an open one if the stop/take/clock already hit.
+
+The house writes after the US close:
+
+1. GitHub Action `desk-session.yml` — weeknights ~21:00–22:00 ET, POST `/api/desk-session`
+2. Same job from the Book page (**Write tonight's book**) when you need to run it now
+3. Session date is the **last daily bar**, not the wall clock (a 12:55am Tuesday run stamps Monday)
+4. Too early (same session, before 16:00 ET) → close open marks, **do not** stamp
+5. One `auto` row per ticker per session. Refresh is not a new call
+6. Every visitor sees the same book
+
+Header `x-desk-job` must match `DESK_JOB_SECRET` when that env is set on Cloud Run.
+Add the GitHub secret `DESK_JOB_SECRET` (and `DATABASE_URL` on Cloud Run) so the
+nightly write survives scale-to-zero.
+
 ## Scoring (frozen)
 
 Scored on the **delayed daily close**, not the day's high/low.
@@ -51,7 +69,7 @@ Scored on the **delayed daily close**, not the day's high/low.
 | Phase | Status | What |
 |---|---|---|
 | **0 — Contract** | **Done** | Schema, exit rules, Paid/Failed, `desk-v4`. Tests in `src/lib/market/book.test.ts`. |
-| **1 — Ledger + stamp** | **Done** | `house_marks` table. Auto stamp on Pulse/ticker load. Manual **Stamp this call**. Chart ticks. `/book` Open / Closed. Empty report card (20-mark rule). |
+| **1 — Ledger + session job** | **Done** | `house_marks` table. Nightly job writes the universe after the close. `/book` Open / Closed. Empty report card (20-mark rule). Visitors do not stamp. |
 | **2 — Closer** | **Done** | On load, close marks that hit stop / take / time / event. Fill 5d and 10d vs entry and vs SPY. Closed row in English. |
 | **3 — Report card** | **Not started** | After 20 closed Buys: hit rate by setup, by regime, vs SPY. Still no number before 20. |
 | **4 — Replay lab** | **Not started** | Walk the same rules over 6–12 months of daily closes. Same object, `source: replay`. Not mixed into the live hit rate until we say so. |
@@ -66,9 +84,10 @@ Scored on the **delayed daily close**, not the day's high/low.
 | `src/lib/market/book.ts` | Pure contract. `planExit`, `draftMark`, `closeMark`. No DB. |
 | `src/lib/market/book.test.ts` | Edge cases. Add a test here before changing a rule. |
 | `src/lib/market/ledger.server.ts` | Postgres. Server-only (`.server.ts`). Never import from a client component. |
-| `src/lib/market/book-api.ts` | `loadBook`, `stampTicker`, `persistPulseBook`. Ledger is dynamically imported. |
-| `src/routes/book.tsx` | Open / Closed / report card. |
-| `src/components/MarkCard.tsx` | Stamp button + open mark on the ticker. |
+| `src/lib/market/session-job.ts` | Nightly universe close + stamp. `source: auto`. |
+| `src/routes/api.desk-session.ts` | POST for GitHub Actions. |
+| `src/routes/book.tsx` | Open / Closed / report card. Operator **Write tonight's book**. |
+| `src/components/MarkCard.tsx` | Read-only house mark on the ticker. |
 | `migrations/0002_house_marks.sql` | Applied. Do not edit. New columns → `0003_*.sql`. |
 
 ## SPY metrics (explored 2026-09-08, not in the UI yet)

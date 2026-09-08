@@ -1,11 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { reportCardCopy, draftFromQuote, type HouseMark } from "./book";
-import { scoreConfidence } from "./confidence";
-import { auditDesk } from "./pillars";
-import { scorePotential } from "./setup";
-import { resolveDates } from "./calendar";
-import { newsForTicker, peersOf, sectorOf } from "./sectors";
-import { fetchNews, fetchQuote, fetchQuotes, normalizeSymbol } from "./yahoo";
+import { reportCardCopy, type HouseMark } from "./book";
+import type { SessionJobResult } from "./session-job";
+import { fetchQuote, fetchQuotes, normalizeSymbol } from "./yahoo";
 import type { Quote } from "./types";
 
 export interface BookPayload {
@@ -24,35 +20,17 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-export async function persistPulseBook(names: Array<{
-  quote: Quote;
-  call: { action: HouseMark["stance"]; why: string };
-  setup: { kind: HouseMark["setup"] };
-  date?: import("./types").DateRead | null;
-  confidence?: import("./types").ConfidenceRead | null;
-}>, spy: Quote | null): Promise<Map<string, HouseMark>> {
+/** Read + settle only. Page loads do not stamp. */
+export async function readMarksForSymbols(
+  symbols: string[],
+  quotes: Quote[],
+  spy: Quote | null,
+): Promise<Map<string, HouseMark>> {
   return safe(async () => {
-    const { closeOpenWithQuotes, stampDrafts, latestForSymbols } = await import("./ledger.server");
-    const quotes = names.map((n) => n.quote);
-    if (spy) quotes.push(spy);
-    await closeOpenWithQuotes(quotes, spy);
-    await stampDrafts(
-      names.map((n) => ({
-        symbol: n.quote.symbol,
-        price: n.quote.price,
-        closes: n.quote.closes,
-        timestamps: n.quote.timestamps,
-        high52: n.quote.high52,
-        stance: n.call.action,
-        setup: n.setup.kind,
-        why: n.call.why,
-        date: n.date,
-        confidence: n.confidence ?? null,
-      })),
-      spy,
-      "auto",
-    );
-    return latestForSymbols(names.map((n) => n.quote.symbol));
+    const { closeOpenWithQuotes, latestForSymbols } = await import("./ledger.server");
+    const bundle = spy ? [...quotes, spy] : quotes;
+    await closeOpenWithQuotes(bundle, spy);
+    return latestForSymbols(symbols);
   }, new Map());
 }
 
@@ -88,64 +66,10 @@ export const loadBook = createServerFn({ method: "GET" }).handler(async (): Prom
   }
 });
 
-export const stampTicker = createServerFn({ method: "POST" })
-  .validator((d: { symbol?: string }) => ({
-    symbol: normalizeSymbol(String(d?.symbol ?? "")) || "",
-  }))
-  .handler(async ({ data }): Promise<{ mark: HouseMark | null; created: boolean; error: string | null }> => {
-    const symbol = data.symbol;
-    if (!symbol) return { mark: null, created: false, error: "No symbol." };
-    try {
-      const [daily, spy, rawNews] = await Promise.all([
-        fetchQuote(symbol, "1y"),
-        fetchQuote("SPY", "3mo"),
-        fetchNews(symbol),
-      ]);
-      if (!daily) return { mark: null, created: false, error: `No quote for ${symbol}.` };
-      const news = newsForTicker(rawNews, symbol, daily.name);
-      const date = await resolveDates({
-        symbol,
-        name: daily.name,
-        news,
-        preferFda: sectorOf(symbol) === "bio",
-      });
-      const peers = await fetchQuotes(peersOf(symbol, 4));
-      const setup = scorePotential(daily, spy);
-      const desk = auditDesk(daily, null, news, date);
-      const confidence = scoreConfidence(daily, setup, spy, peers);
-      const draft = draftFromQuote({
-        symbol,
-        price: daily.price,
-        closes: daily.closes,
-        timestamps: daily.timestamps,
-        high52: daily.high52,
-        spyPrice: spy?.price ?? null,
-        spyCloses: spy?.closes ?? null,
-        stance: desk.call.action,
-        setup: setup.kind,
-        why: desk.call.why,
-        source: "manual",
-        date,
-        confidence,
-        radar: desk.radar,
-      });
-      if (!draft) return { mark: null, created: false, error: "Cannot stamp a bad print." };
-      const { closeOpenWithQuotes, insertMark, listMarksForSymbol } = await import("./ledger.server");
-      await closeOpenWithQuotes(spy ? [daily, spy] : [daily], spy);
-      const inserted = await insertMark(draft);
-      if (inserted) return { mark: inserted, created: true, error: null };
-      const existing = (await listMarksForSymbol(symbol)).find(
-        (m) => m.sessionDate === draft.sessionDate && m.source === "manual",
-      );
-      return { mark: existing ?? draft, created: false, error: null };
-    } catch (err) {
-      return {
-        mark: null,
-        created: false,
-        error: err instanceof Error ? err.message : "Stamp failed.",
-      };
-    }
-  });
+export const runBookSession = createServerFn({ method: "POST" }).handler(async (): Promise<SessionJobResult> => {
+  const { runDeskSession } = await import("./session-job");
+  return runDeskSession();
+});
 
 export const loadTickerMarks = createServerFn({ method: "GET" })
   .validator((d: { symbol?: string }) => ({

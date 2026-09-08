@@ -14,6 +14,7 @@ import { Route as BookRouteImport } from './routes/book'
 import { Route as DeskRouteImport } from './routes/desk'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as OptionsRouteImport } from './routes/options'
+import { Route as ApiDeskSessionRouteImport } from './routes/api.desk-session'
 import { Route as TickerSymbolRouteImport } from './routes/ticker.$symbol'
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const OptionsRoute = OptionsRouteImport.update({
   path: '/options',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDeskSessionRoute = ApiDeskSessionRouteImport.update({
+  id: '/api/desk-session',
+  path: '/api/desk-session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TickerSymbolRoute = TickerSymbolRouteImport.update({
   id: '/ticker/$symbol',
   path: '/ticker/$symbol',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/desk': typeof DeskRoute
   '/news': typeof NewsRoute
   '/options': typeof OptionsRoute
+  '/api/desk-session': typeof ApiDeskSessionRoute
   '/ticker/$symbol': typeof TickerSymbolRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/desk': typeof DeskRoute
   '/news': typeof NewsRoute
   '/options': typeof OptionsRoute
+  '/api/desk-session': typeof ApiDeskSessionRoute
   '/ticker/$symbol': typeof TickerSymbolRoute
 }
 export interface FileRoutesById {
@@ -70,13 +78,28 @@ export interface FileRoutesById {
   '/desk': typeof DeskRoute
   '/news': typeof NewsRoute
   '/options': typeof OptionsRoute
+  '/api/desk-session': typeof ApiDeskSessionRoute
   '/ticker/$symbol': typeof TickerSymbolRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/book' | '/desk' | '/news' | '/options' | '/ticker/$symbol'
+  fullPaths:
+    | '/'
+    | '/book'
+    | '/desk'
+    | '/news'
+    | '/options'
+    | '/api/desk-session'
+    | '/ticker/$symbol'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/book' | '/desk' | '/news' | '/options' | '/ticker/$symbol'
+  to:
+    | '/'
+    | '/book'
+    | '/desk'
+    | '/news'
+    | '/options'
+    | '/api/desk-session'
+    | '/ticker/$symbol'
   id:
     | '__root__'
     | '/'
@@ -84,6 +107,7 @@ export interface FileRouteTypes {
     | '/desk'
     | '/news'
     | '/options'
+    | '/api/desk-session'
     | '/ticker/$symbol'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +117,7 @@ export interface RootRouteChildren {
   DeskRoute: typeof DeskRoute
   NewsRoute: typeof NewsRoute
   OptionsRoute: typeof OptionsRoute
+  ApiDeskSessionRoute: typeof ApiDeskSessionRoute
   TickerSymbolRoute: typeof TickerSymbolRoute
 }
 
@@ -133,6 +158,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OptionsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/desk-session': {
+      id: '/api/desk-session'
+      path: '/api/desk-session'
+      fullPath: '/api/desk-session'
+      preLoaderRoute: typeof ApiDeskSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ticker/$symbol': {
       id: '/ticker/$symbol'
       path: '/ticker/$symbol'
@@ -149,6 +181,7 @@ const rootRouteChildren: RootRouteChildren = {
   DeskRoute: DeskRoute,
   NewsRoute: NewsRoute,
   OptionsRoute: OptionsRoute,
+  ApiDeskSessionRoute: ApiDeskSessionRoute,
   TickerSymbolRoute: TickerSymbolRoute,
 }
 export const routeTree = rootRouteImport

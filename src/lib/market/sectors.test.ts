@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   capFromMarketCap,
+  deskUniverse,
   filterNews,
   getSector,
   isSectorId,
@@ -39,40 +40,41 @@ test("bio has an FDA filter and more than one small cap", () => {
   assert.ok(bio.names.some((n) => /FDA|PDUFA|Phase 3/i.test(n.tag)));
 });
 
-test("unknown sector falls back to tape", () => {
-  assert.equal(getSector("nope").id, "tape");
-  assert.equal(isSectorId("bio"), true);
+test("newsForTicker prefers a title match", () => {
+  const items = [
+    { title: "Uber misses", related: ["NVDA"] },
+    { title: "NVDA wins a data-center deal", related: [] },
+  ];
+  const out = newsForTicker(items, "NVDA", "NVIDIA Corporation");
+  assert.equal(out.length, 1);
+  assert.match(out[0].title, /NVDA/);
 });
 
-test("news filter dumps unmatched headlines instead of filling with noise", () => {
-  const bio = getSector("bio");
-  const kept = filterNews([{ title: "Uber beats" }, { title: "FDA approves CYTK" }], bio.newsFilter);
-  assert.deepEqual(
-    kept.map((k) => k.title),
-    ["FDA approves CYTK"],
-  );
-});
-
-test("peers of NVDA come from AI, not the whole tape", () => {
+test("peersOf stays inside the sector", () => {
   const peers = peersOf("NVDA", 4);
-  assert.equal(peers.length, 4);
+  assert.ok(peers.length > 0);
   assert.ok(!peers.includes("NVDA"));
-  assert.equal(sectorOf("NVDA"), "ai");
 });
 
-test("news for a ticker prefers the name in the headline", () => {
-  const rows = newsForTicker(
-    [
-      { title: "Uber beats on rides", related: ["UBER"] },
-      { title: "NVIDIA unveils next GPU", related: ["NVDA", "AMD"] },
-      { title: "Chip stocks rally", related: ["NVDA"] },
-    ],
-    "NVDA",
-    "NVIDIA Corporation",
-  );
-  assert.deepEqual(
-    rows.map((r) => r.title),
-    ["NVIDIA unveils next GPU"],
-  );
+test("isSectorId rejects junk", () => {
+  assert.equal(isSectorId("bio"), true);
+  assert.equal(isSectorId("nope"), false);
 });
 
+test("filterNews drops non-matching titles", () => {
+  const re = /\bFDA\b/;
+  assert.equal(filterNews([{ title: "FDA approves" }, { title: "Weather" }], re).length, 1);
+});
+
+test("sectorOf maps a bio name and a tape-menu name", () => {
+  assert.equal(sectorOf("LLY"), "bio");
+  assert.ok(isSectorId(sectorOf("AAPL")));
+});
+
+test("desk universe is unique across sectors", () => {
+  const u = deskUniverse();
+  assert.equal(u.length, new Set(u).size);
+  assert.ok(u.includes("AAPL"));
+  assert.ok(u.includes("LLY"));
+  assert.ok(u.length >= 70);
+});

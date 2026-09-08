@@ -155,8 +155,12 @@ export const loadPulse = createServerFn({ method: "GET" })
     });
     const marksBy = await (async () => {
       try {
-        const { persistPulseBook } = await import("./book-api");
-        return persistPulseBook(allNames, spy);
+        const { readMarksForSymbols } = await import("./book-api");
+        return readMarksForSymbols(
+          allNames.map((n) => n.quote.symbol),
+          allNames.map((n) => n.quote),
+          spy,
+        );
       } catch {
         return new Map<string, HouseMark>();
       }
@@ -246,27 +250,8 @@ export const loadTicker = createServerFn({ method: "GET" })
     const correlates = correlate(quote, [...(spy ? [spy] : []), ...peers]);
     let marks: HouseMark[] = [];
     try {
-      const { closeOpenWithQuotes, listMarksForSymbol, stampDrafts } = await import("./ledger.server");
+      const { closeOpenWithQuotes, listMarksForSymbol } = await import("./ledger.server");
       await closeOpenWithQuotes(spy ? [quote, spy] : [quote], spy);
-      await stampDrafts(
-        [
-          {
-            symbol,
-            price: quote.price,
-            closes: quote.closes,
-            timestamps: quote.timestamps,
-            high52: quote.high52,
-            stance: desk.call.action,
-            setup: setup.kind,
-            why: desk.call.why,
-            date,
-            confidence: scoreConfidence(quote, setup, spy, peers),
-            radar: desk.radar,
-          },
-        ],
-        spy,
-        "auto",
-      );
       marks = await listMarksForSymbol(symbol);
     } catch {
       marks = [];
