@@ -2,23 +2,37 @@
 
 TanStack Start (Vite + Nitro) serves the desk. Cloud Run uses `NITRO_PRESET=node-server`.
 
+The **recommendation engine** (house book, stamps, Paid/Failed, remaining phases)
+is documented in [RECOMMENDATION_ENGINE.md](./RECOMMENDATION_ENGINE.md).
+Agent standard: `.grok/skills/sigma-desk/SKILL.md`.
+
 ## Feeds (honest)
 
 | Surface | Source | Note |
 | --- | --- | --- |
 | Quotes / charts | Yahoo Finance chart v8 | Delayed last print |
+| Live tape poll | Yahoo 1m chart | Last print, stamped delayed |
 | Options / unusual | Yahoo options v7 | Nearest expiry; unusual = volume / OI |
-| News | Yahoo search | Headlines only |
+| News | Yahoo search | Ticker-scoped headlines |
+| Earnings date | Nasdaq earnings-date / calendar | Estimated vs confirmed; free |
+| FDA date | Headline / RSS parse | Only with a civil date |
 | IV rank | Unobserved | No 1-year IV history |
 | STOCK Act / Form 4 | Unobserved | Pillar stays blank |
-| Event backtest | Unobserved | News density is not a win-rate |
+| SIP real-time / paid flow | Unobserved | Do not fake |
 
-## 5 pillars
+## Call, not a composite essay
 
-1. Price trend & momentum (22%) — EMA/RSI on daily closes  
-2. Volatility (20%) — ATM IV vs 20d realized vol  
-3. Smart money (18%) — unobserved  
-4. Catalyst (22%) — news density, not historical realization  
-5. Downside safety (18%) — defined-risk constructible from the chain  
+1. **Action** — Buy / Watch / Wait / Avoid, with reasons (trend, RSI, range, day).
+2. **Setup** — coil / lag / room / spent / wash. Coil and lag are the earlier read.
+3. **Radar** — Tape, Quiet, Date, Gap. English on each spoke.
+4. **Confidence** — RSI mood, trend, coil, history. Capped when tired or downtrend.
+5. **Date** — Next dated event if we have one. Fuse on the stamp.
+6. **Book** — Stamp with an exit. Close later. Paid / Failed / Expired.
 
-Composite is a weighted average of **observed** pillars only.
+## House ledger
+
+`house_marks` (see `migrations/0002_house_marks.sql`). Auth off: unowned rows.
+Durable only when `DATABASE_URL` is set (Neon). Preview and Cloud Run without it
+use PGLite and lose rows on restart / scale-to-zero.
+
+Engine version **desk-v4**. Do not rewrite old marks in place.
