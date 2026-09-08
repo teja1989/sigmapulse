@@ -2,6 +2,9 @@ export type ProvenanceKind =
   | "yahoo-delayed"
   | "yahoo-options"
   | "yahoo-news"
+  | "nasdaq-calendar"
+  | "fda-rss"
+  | "news-date"
   | "derived"
   | "unobserved";
 
@@ -10,6 +13,8 @@ export interface Provenance {
   label: string;
   asOf: string | null;
 }
+
+export type Session = "pre" | "open" | "post" | "closed";
 
 export interface Quote {
   symbol: string;
@@ -29,6 +34,22 @@ export interface Quote {
   marketState: string;
   sparkline: number[];
   closes: number[];
+  timestamps: number[];
+  provenance: Provenance;
+}
+
+export interface LivePrint {
+  symbol: string;
+  price: number;
+  prevClose: number;
+  change: number;
+  changePct: number;
+  asOf: string;
+  asOfUnix: number;
+  session: Session;
+  sessionLabel: string;
+  delayed: boolean;
+  sparkline: number[];
   timestamps: number[];
   provenance: Provenance;
 }
@@ -80,6 +101,55 @@ export interface Pillar {
   observed: boolean;
 }
 
+export type AxisId = "tape" | "quiet" | "date" | "gap";
+
+export interface AxisScore {
+  id: AxisId;
+  label: string;
+  score: number | null;
+  observed: boolean;
+  meaning: string;
+}
+
+export interface RadarRead {
+  axes: AxisScore[];
+  sentence: string;
+}
+
+export type DateKind = "earnings" | "fda" | "headline";
+export type DateStatus = "confirmed" | "estimated" | "printed" | "unconfirmed";
+export type DateWhen = "bmo" | "amc" | "unknown";
+
+export interface DatedEvent {
+  kind: DateKind;
+  status: DateStatus;
+  when: DateWhen;
+  date: string;
+  daysAway: number;
+  label: string;
+  detail: string;
+  consensusEps: number | null;
+  surprisePct: number | null;
+  provenance: Provenance;
+}
+
+export interface DateRead {
+  event: DatedEvent | null;
+  others: DatedEvent[];
+  feedOk: boolean;
+  score: number;
+  meaning: string;
+  sentence: string;
+}
+
+export interface CorrelateRow {
+  symbol: string;
+  name: string;
+  corr: number | null;
+  changePct: number;
+  meaning: string;
+}
+
 export type Action = "buy" | "watch" | "wait" | "avoid";
 
 export interface ActionCall {
@@ -89,12 +159,43 @@ export interface ActionCall {
   reasons: string[];
 }
 
+export type RsiMood = "tired" | "healthy" | "washed" | "soft";
+
+export type VoteId = "trend" | "rsi" | "quiet" | "history";
+
+export interface ConfidenceVote {
+  id: VoteId;
+  yes: boolean;
+  label: string;
+  detail: string;
+}
+
+export interface CoilHistory {
+  samples: number;
+  hits: number;
+  hitRate: number | null;
+  medianFwd: number | null;
+  failMedian: number | null;
+  sentence: string;
+}
+
+export interface ConfidenceRead {
+  score: number;
+  agreed: number;
+  of: number;
+  rsi: { value: number | null; mood: RsiMood | null; label: string };
+  history: CoilHistory;
+  votes: ConfidenceVote[];
+  sentence: string;
+}
+
 export interface DeskAudit {
   symbol: string;
   composite: number | null;
   verdict: string;
   call: ActionCall;
   pillars: Pillar[];
+  radar: RadarRead;
   provenanceNotes: string[];
 }
 

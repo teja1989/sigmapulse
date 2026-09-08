@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { decideAction, ema, realizedVol, rsi14, scoreFlow, scoreTrend } from "./pillars.ts";
+import { decideAction, ema, realizedVol, rsi14, scoreFlow, scoreRadar, scoreTrend } from "./pillars.ts";
 import type { Quote } from "./types.ts";
 
 function quote(closes: number[]): Quote {
@@ -22,8 +22,8 @@ function quote(closes: number[]): Quote {
     cap: null,
     marketState: "REGULAR",
     sparkline: closes,
-    closes,
     timestamps: closes.map((_, i) => i),
+    closes,
     provenance: { kind: "derived", label: "test", asOf: null },
   };
 }
@@ -73,7 +73,6 @@ test("rising unstretched series is Buy", () => {
 
 test("hard downtrend is Avoid", () => {
   const head = Array.from({ length: 46 }, (_, i) => 140 - i * 0.2);
-  // grind down with enough bounces that RSI is not washed out
   const last = [131, 131.8, 131.2, 132, 131.4, 131.9, 131.1, 131.6, 130.8, 131.3, 130.6, 131.1, 130.4, 130.9];
   const q = quote([...head, ...last]);
   q.changePct = -0.4;
@@ -87,4 +86,33 @@ test("short history is Wait", () => {
   assert.equal(call.action, "wait");
 });
 
+test("radar speaks English and scores four axes", () => {
+  const base = Array.from({ length: 50 }, (_, i) => 80 + i * 0.2);
+  const q = quote([...base, 90, 90.2, 90.1, 90.3, 90.0, 90.2]);
+  q.low52 = 70;
+  q.high52 = 130;
+  q.price = 90.2;
+  const radar = scoreRadar(q, null, []);
+  assert.equal(radar.axes.length, 4);
+  assert.deepEqual(
+    radar.axes.map((a) => a.id),
+    ["tape", "quiet", "date", "gap"],
+  );
+  const date = radar.axes.find((a) => a.id === "date");
+  assert.equal(date?.score, 0);
+  assert.match(date?.meaning ?? "", /no date/i);
+  assert.match(radar.sentence, /tape/i);
+});
 
+test("spent name scores Quiet low and Gap low", () => {
+  const closes = Array.from({ length: 60 }, (_, i) => 100 + i);
+  const q = quote(closes);
+  q.price = 159;
+  q.high52 = 160;
+  q.low52 = 100;
+  const radar = scoreRadar(q, null, []);
+  const quiet = radar.axes.find((a) => a.id === "quiet");
+  const gap = radar.axes.find((a) => a.id === "gap");
+  assert.ok((quiet?.score ?? 100) < 40, String(quiet?.score));
+  assert.ok((gap?.score ?? 100) < 25, String(gap?.score));
+});

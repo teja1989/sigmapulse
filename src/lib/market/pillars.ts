@@ -1,4 +1,14 @@
-import type { ActionCall, DeskAudit, NewsItem, OptionSnapshot, Pillar, Quote } from "./types";
+import type {
+  ActionCall,
+  AxisScore,
+  DateRead,
+  DeskAudit,
+  NewsItem,
+  OptionSnapshot,
+  Pillar,
+  Quote,
+  RadarRead,
+} from "./types";
 
 function mean(xs: number[]): number {
   if (!xs.length) return NaN;
@@ -104,8 +114,6 @@ export function scoreVol(quote: Quote, options: OptionSnapshot | null): Pillar {
   const bits: string[] = [];
   if (iv != null) {
     bits.push(`ATM IV ${(iv * 100).toFixed(1)}% (Yahoo chain)`);
-    // Cheap vol (low IV) scores higher for long premium; rich vol scores for selling.
-    // Desk score here is "is this a clean long-vol setup?" — cheap IV is high.
     score = clamp(100 - iv * 120);
   }
   if (hv != null) {
@@ -154,9 +162,7 @@ export function scoreCatalyst(news: NewsItem[]): Pillar {
     name: "News",
     weight: 0.22,
     score,
-    layman: observed
-      ? `${news.length} recent headlines.`
-      : "Quiet. No headlines.",
+    layman: observed ? `${news.length} recent headlines.` : "Quiet. No headlines.",
     detail: "",
     observed,
   };
@@ -307,10 +313,170 @@ export function decideAction(quote: Quote, options?: OptionSnapshot | null): Act
   return makeCall("wait", "Sideways tape. No reason to act today.", facts);
 }
 
+function typicalDayPct(closes: number[], n = 14): number | null {
+  if (closes.length < n + 1) return null;
+  const slice = closes.slice(-(n + 1));
+  const moves: number[] = [];
+  for (let i = 1; i < slice.length; i++) {
+    if (slice[i] > 0 && slice[i - 1] > 0) {
+      moves.push(Math.abs((slice[i] - slice[i - 1]) / slice[i - 1]) * 100);
+    }
+  }
+  if (!moves.length) return null;
+  return moves.reduce((a, b) => a + b, 0) / moves.length;
+}
+
+const EVENT_RE =
+  /\b(FDA|PDUFA|AdCom|CRL|earnings|guidance|approval|Phase\s*3|Phase\s*III|contract|award|PDUFA)\b/i;
+
+function hoursAgo(iso: string | null): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return (Date.now() - t) / 36e5;
+}
+
+function axis(id: AxisScore["id"], label: string, score: number | null, observed: boolean, meaning: string): AxisScore {
+  return { id, label, score: score == null ? null : Number(score.toFixed(0)), observed, meaning };
+}
+
+export function scoreRadar(
+  quote: Quote,
+  options: OptionSnapshot | null,
+  news: NewsItem[],
+  dateRead?: DateRead | null,
+): RadarRead {
+  const rsi = rsi14(quote.closes);
+  const e20 = ema(quote.closes, 20);
+  const e50 = ema(quote.closes, 50);
+  const high = quote.high52;
+  const low = quote.low52;
+  const rangePct =
+    high != null && low != null && high > low
+      ? ((quote.price - low) / (high - low)) * 100
+      : null;
+  const roomPct =
+    high != null && high > quote.price
+      ? ((high - quote.price) / quote.price) * 100
+      : high != null
+        ? 0
+        : null;
+
+  let tapeScore: number | null = null;
+  let tapeMeaning = "Not enough history to read the tape.";
+  if (quote.closes.length >= 20 && e20 != null && e50 != null && rsi != null) {
+    tapeScore = 50;
+    tapeScore += e20 > e50 ? 18 : e20 < e50 ? -18 : 0;
+    tapeScore += (rsi - 50) * 0.7;
+    if (quote.changePct > 1.5) tapeScore += 6;
+    if (quote.changePct < -1.5) tapeScore -= 6;
+    tapeScore = clamp(tapeScore);
+    tapeMeaning =
+      tapeScore >= 70
+        ? "The tape is already going up."
+        : tapeScore >= 55
+          ? "The tape is holding up."
+          : tapeScore >= 45
+            ? "The tape is sideways."
+            : tapeScore >= 30
+              ? "The tape is under pressure."
+              : "The tape is going down.";
+  }
+
+  const rv10 = realizedVol(quote.closes, 10);
+  const rv40 = realizedVol(quote.closes, 40);
+  let quietScore: number | null = null;
+  let quietMeaning = "Not enough history to know if it's quiet.";
+  if (rv10 != null && rv40 != null && rv40 > 0) {
+    quietScore = clamp(100 - (rv10 / rv40) * 80);
+    if (rangePct != null && rangePct >= 92) quietScore = Math.min(quietScore, 22);
+    if (rangePct != null && rangePct <= 12) quietScore = Math.min(quietScore, 45);
+    quietMeaning =
+      quietScore >= 70
+        ? "It's been quiet — energy is stored, not spent."
+        : quietScore >= 45
+          ? "Ordinary noise. Not coiled, not blown off."
+          : "It already ran. Quiet is gone.";
+  } else if (rangePct != null) {
+    quietScore = clamp(100 - rangePct);
+    quietMeaning =
+      rangePct >= 92
+        ? "It already ran. Quiet is gone."
+        : rangePct <= 20
+          ? "Sitting near the lows — quiet for the wrong reason."
+          : "Ordinary noise.";
+  }
+
+  const fresh = news.filter((n) => {
+    const h = hoursAgo(n.publishedAt);
+    return h != null && h <= 72 && EVENT_RE.test(n.title);
+  });
+  const recent = news.filter((n) => {
+    const h = hoursAgo(n.publishedAt);
+    return h != null && h <= 24 * 7;
+  });
+  let dateScore: number;
+  let dateMeaning: string;
+  if (dateRead) {
+    dateScore = dateRead.score;
+    dateMeaning = dateRead.meaning;
+  } else if (fresh.length) {
+    dateScore = 24;
+    dateMeaning = "A catalyst is in the headlines, but nobody named a date we can put on a calendar.";
+  } else if (recent.length) {
+    dateScore = 12;
+    dateMeaning = "Headlines this week, but no date we can see.";
+  } else {
+    dateScore = 0;
+    dateMeaning = "No date we can see.";
+  }
+
+  const atr = typicalDayPct(quote.closes);
+  const weekMove = atr != null ? atr * Math.sqrt(5) : null;
+  const priced = options?.atmIv != null ? options.atmIv * 100 * Math.sqrt(21 / 365) : weekMove;
+  let gapScore: number | null = null;
+  let gapMeaning = "Can't size the gap without a range.";
+  if (roomPct != null) {
+    if (roomPct <= 1) {
+      gapScore = 8;
+      gapMeaning = "Room to the high is gone.";
+    } else if (priced != null && priced > 0.4) {
+      const ratio = roomPct / priced;
+      gapScore = clamp(ratio * 28);
+      gapMeaning =
+        ratio >= 2.2
+          ? "There's more room than a typical week is acting like."
+          : ratio >= 1.1
+            ? "Room and the usual move are in line."
+            : "The easy gain is already in the price.";
+    } else {
+      gapScore = clamp(roomPct * 2);
+      gapMeaning =
+        roomPct >= 15
+          ? "There's room to the high. That's distance, not a forecast."
+          : "Little room left to the high.";
+    }
+  }
+
+  const axes: AxisScore[] = [
+    axis("tape", "Tape", tapeScore, tapeScore != null, tapeMeaning),
+    axis("quiet", "Quiet", quietScore, quietScore != null, quietMeaning),
+    axis("date", "Date", dateScore, true, dateMeaning),
+    axis("gap", "Gap", gapScore, gapScore != null, gapMeaning),
+  ];
+
+  const sentence = [quietMeaning, dateMeaning, gapMeaning, tapeMeaning]
+    .filter((s, i, arr) => arr.indexOf(s) === i)
+    .join(" ");
+
+  return { axes, sentence };
+}
+
 export function auditDesk(
   quote: Quote,
   options: OptionSnapshot | null,
   news: NewsItem[],
+  dateRead?: DateRead | null,
 ): DeskAudit {
   const pillars = [
     scoreTrend(quote),
@@ -336,7 +502,7 @@ export function auditDesk(
     verdict: call.why,
     call,
     pillars,
+    radar: scoreRadar(quote, options, news, dateRead),
     provenanceNotes: [],
   };
 }
-
